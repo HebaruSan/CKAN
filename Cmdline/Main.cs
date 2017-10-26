@@ -143,7 +143,7 @@ This is a bad idea and there is absolutely no good reason to do it. Please run C
                 // Set a KSP directory by its path
                 manager.SetCurrentInstanceByPath(options.KSPdir);
             }
-            else if (! (cmdline.action == "ksp" || cmdline.action == "version" || cmdline.action == "gui"))
+            else if (! (cmdline.action == "ksp" || cmdline.action == "version" || cmdline.action == "gui" || cmdline.action == "consoleui"))
             {
                 // Find whatever our preferred instance is.
                 // We don't do this on `ksp/version/gui` commands, they don't need it.
@@ -210,6 +210,9 @@ This is a bad idea and there is absolutely no good reason to do it. Please run C
             {
                 case "gui":
                     return Gui((GuiOptions)options, args);
+
+                case "consoleui":
+                    return ConsoleUi(args);
 
                 case "version":
                     return Version(user);
@@ -317,6 +320,11 @@ This is a bad idea and there is absolutely no good reason to do it. Please run C
             GUI.Main_(args, options.ShowConsole);
 
             return Exit.OK;
+        }
+
+        private static int ConsoleUi(string[] args)
+        {
+           return CKAN.ConsoleUI.ConsoleUI.Main_(args);
         }
 
         private static int Version(IUser user)
