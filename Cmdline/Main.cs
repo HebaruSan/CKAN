@@ -212,7 +212,7 @@ This is a bad idea and there is absolutely no good reason to do it. Please run C
                     return Gui((GuiOptions)options, args);
 
                 case "consoleui":
-                    return ConsoleUi(args);
+                    return ConsoleUi(options, args);
 
                 case "version":
                     return Version(user);
@@ -322,9 +322,11 @@ This is a bad idea and there is absolutely no good reason to do it. Please run C
             return Exit.OK;
         }
 
-        private static int ConsoleUi(string[] args)
+        private static int ConsoleUi(CommonOptions opts, string[] args)
         {
-           return CKAN.ConsoleUI.ConsoleUI.Main_(args);
+            // Debug/verbose output just messes up the screen
+            LogManager.GetRepository().Threshold = Level.Warn;
+            return CKAN.ConsoleUI.ConsoleUI.Main_(args, opts.Debug);
         }
 
         private static int Version(IUser user)
