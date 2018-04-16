@@ -13,8 +13,6 @@
     <FileAlignment>512</FileAlignment>
     <OutputPath>..\_build\out\$(AssemblyName)\$(Configuration)\bin\</OutputPath>
     <IntermediateOutputPath>..\_build\out\$(AssemblyName)\$(Configuration)\obj\</IntermediateOutputPath>
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
