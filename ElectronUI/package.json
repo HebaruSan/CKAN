@@ -1,0 +1,77 @@
+{
+  "name": "CKAN",
+  "version": "1.25.2",
+  "description": "Comprehensive Kerbal Archive Network client",
+  "author": "The CKAN Authors",
+  "license": "MIT",
+  "repository": "https://github.com/KSP-CKAN/CKAN",
+  "main": "main/main.js",
+  "devDependencies": {
+    "babel-plugin-transform-async-to-generator": "^6.24.1",
+    "babel-preset-env": "^1.7.0",
+    "babel-preset-react": "^6.24.1",
+    "electron-forge": "^5.2.2",
+    "electron-prebuilt-compile": "2.0.2"
+  },
+  "dependencies": {
+    "@material-ui/core": "^1.0.0",
+    "@material-ui/icons": "^1.0.0",
+    "class-autobind": "^0.1.4",
+    "electron-compile": "^6.4.2",
+    "electron-edge-js": "^8.3.4",
+    "electron-squirrel-startup": "^1.0.0",
+    "electron-window-state": "^4.1.1",
+    "filesize": "^3.6.1",
+    "os": "^0.1.1",
+    "react": "^16.0.0",
+    "react-custom-scrollbars": "^4.2.1",
+    "react-dom": "^16.0.0",
+    "react-number-format": "^3.4.0",
+    "react-scripts": "1.0.14",
+    "react-tap-event-plugin": "^3.0.2",
+    "react-virtualized": "^9.19.1",
+    "typeface-roboto": "0.0.54"
+  },
+  "scripts": {
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make --all"
+  },
+  "config": {
+    "forge": {
+      "make_targets": {
+        "win32": [
+          "squirrel"
+        ],
+        "darwin": [
+          "dmg"
+        ],
+        "linux": [
+          "deb",
+          "zip"
+        ]
+      },
+      "electronPackagerConfig": {
+        "packageManager": "npm",
+        "icon": "icon.icns",
+        "extraResource": [
+          "../_build/out/CKAN/Release/bin/net45/"
+        ]
+      },
+      "electronWinstallerConfig": {
+        "name": "CKAN",
+        "setupIcon": "icon.ico"
+      },
+      "electronInstallerDebian": {},
+      "electronInstallerRedhat": {},
+      "github_repository": {
+        "owner": "KSP-CKAN",
+        "name": "CKAN"
+      },
+      "windowsStoreConfig": {
+        "packageName": "CKAN",
+        "name": "CKAN"
+      }
+    }
+  }
+}

@@ -253,7 +253,7 @@ namespace CKAN
         /// Intended for previews.
         /// </summary>
         // TODO: Return files relative to GameRoot
-        public IEnumerable<string> GetModuleContentsList(CkanModule module)
+        public IEnumerable<string> GetModuleContentsList(CkanModule module, bool source = false)
         {
             string filename = Cache.GetCachedZip(module);
 
@@ -262,8 +262,11 @@ namespace CKAN
                 return null;
             }
 
-            return FindInstallableFiles(module, filename, ksp)
-                .Select(x => x.destination);
+            return source
+                ? FindInstallableFiles(module, filename, ksp)
+                    .Select(x => x.source.Name)
+                : FindInstallableFiles(module, filename, ksp)
+                    .Select(x => x.destination);
         }
 
         /// <summary>

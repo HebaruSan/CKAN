@@ -21,6 +21,13 @@ namespace CKAN
 
         public IUser User { get; set; }
 
+        static NetAsyncDownloader()
+        {
+            // Force-allow TLS 1.2 for HTTPS URLs, because GitHub requires it.
+            // This is on by default in .NET 4.6, but not in 4.5.
+            ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
+        }
+
         // Private utility class for tracking downloads
         private class NetAsyncDownloaderDownloadPart
         {

@@ -60,6 +60,7 @@ before_deploy:
     - ./build osx
     - ./build deb
     - ./build rpm
+    - ./build electron-ui
     - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
 deploy:

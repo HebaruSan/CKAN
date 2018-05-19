@@ -289,6 +289,10 @@ namespace CKAN
         [JsonProperty("curse", NullValueHandling = NullValueHandling.Ignore)]
         [JsonConverter(typeof(JsonOldResourceUrlConverter))]
         public Uri curse;
+
+        [JsonProperty("x_screenshot", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonConverter(typeof(JsonOldResourceUrlConverter))]
+        public Uri x_screenshot;
     }
 
     public class DownloadHashesDescriptor

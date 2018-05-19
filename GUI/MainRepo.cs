@@ -19,13 +19,9 @@ namespace CKAN
 
         public static RepositoryList FetchMasterRepositoryList(Uri master_uri = null)
         {
-            if (master_uri == null)
-            {
-                master_uri = Repository.default_repo_master_list;
-            }
-
-            string json = Net.DownloadText(master_uri);
-            return JsonConvert.DeserializeObject<RepositoryList>(json);
+            return JsonConvert.DeserializeObject<RepositoryList>(
+                Net.DownloadText(master_uri ?? Repository.default_repo_master_list)
+            );
         }
 
         public void UpdateRepo()

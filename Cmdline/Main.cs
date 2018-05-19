@@ -51,10 +51,6 @@ namespace CKAN.CmdLine
             Logging.Initialize();
             log.Info("CKAN started.");
 
-            // Force-allow TLS 1.2 for HTTPS URLs, because GitHub requires it.
-            // This is on by default in .NET 4.6, but not in 4.5.
-            ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
-
             try
             {
                 return Execute(null, null, args);
