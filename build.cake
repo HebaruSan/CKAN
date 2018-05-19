@@ -3,6 +3,8 @@
 #addin "nuget:?package=Cake.Docker&version=0.11.0"
 #tool "nuget:?package=ILRepack&version=2.0.18"
 #tool "nuget:?package=NUnit.ConsoleRunner&version=3.11.1"
+#addin "nuget:?package=Cake.Npm&version=0.14.0"
+#addin "nuget:?package=Cake.Incubator&version=3.0.0"
 
 using System.Text.RegularExpressions;
 using Semver;
@@ -21,6 +23,7 @@ var outDirectory = buildDirectory.Combine("out");
 var repackDirectory = buildDirectory.Combine("repack");
 var ckanFile = repackDirectory.Combine(configuration).CombineWithFilePath("ckan.exe");
 var netkanFile = repackDirectory.Combine(configuration).CombineWithFilePath("netkan.exe");
+var electronOutDir = rootDirectory.Combine("ElectronUI").Combine("out").Combine("make");
 
 Task("Default")
     .Description("Build ckan.exe and netkan.exe, if not specified otherwise in Debug configuration for .NET Framework.")
@@ -184,6 +187,30 @@ private void MakeIn(string dir, string args = null)
         throw new Exception("Make failed with exit code: " + exitCode);
     }
 }
+
+Task("electron-ui")
+    .IsDependentOn("Build-DotNet")
+    .Does(() =>
+    {
+        NpmInstall(new NpmInstallSettings
+        {
+            WorkingDirectory = "./ElectronUI"
+        });
+        NpmRunScript(new NpmRunScriptSettings
+        {
+            WorkingDirectory = "./ElectronUI",
+            ScriptName       = "make"
+        });
+        CopyFiles(
+            GetFiles(
+                string.Format("{0}/**/*.exe", electronOutDir),
+                string.Format("{0}/**/*.dmg", electronOutDir),
+                string.Format("{0}/**/*.deb", electronOutDir),
+                string.Format("{0}/**/*.zip", electronOutDir)
+            ),
+            buildDirectory
+        );
+    });
 
 Task("Restore-Nuget")
     .Description("Intermediate - Download dependencies with NuGet when building for .NET Framework.")

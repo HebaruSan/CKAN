@@ -46,3 +46,5 @@ bld/
 *.nuget.targets
 
 quotes.txt.dat
+
+node_modules/

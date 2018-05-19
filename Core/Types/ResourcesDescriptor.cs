@@ -40,11 +40,11 @@ namespace CKAN
         [JsonProperty("metanetkan", Order = 9, NullValueHandling = NullValueHandling.Ignore)]
         [JsonConverter(typeof(JsonOldResourceUrlConverter))]
         public Uri metanetkan;
-        
+
         [JsonProperty("remote-avc", Order = 10, NullValueHandling = NullValueHandling.Ignore)]
         [JsonConverter(typeof(JsonOldResourceUrlConverter))]
         public Uri remoteAvc;
-        
+
         [JsonProperty("store", Order = 11, NullValueHandling = NullValueHandling.Ignore)]
         [JsonConverter(typeof(JsonOldResourceUrlConverter))]
         public Uri store;
@@ -52,5 +52,9 @@ namespace CKAN
         [JsonProperty("steamstore", Order = 12, NullValueHandling = NullValueHandling.Ignore)]
         [JsonConverter(typeof(JsonOldResourceUrlConverter))]
         public Uri steamstore;
+
+        [JsonProperty("x_screenshot", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonConverter(typeof(JsonOldResourceUrlConverter))]
+        public Uri x_screenshot;
     }
 }

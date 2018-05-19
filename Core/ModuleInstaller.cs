@@ -230,7 +230,7 @@ namespace CKAN
         ///
         /// Intended for previews.
         /// </summary>
-        public IEnumerable<string> GetModuleContentsList(CkanModule module)
+        public IEnumerable<string> GetModuleContentsList(CkanModule module, bool source = false)
         {
             string filename = Cache.GetCachedFilename(module);
 
@@ -241,10 +241,15 @@ namespace CKAN
 
             try
             {
-                return FindInstallableFiles(module, filename, ksp)
-                    // Skip folders
-                    .Where(f => !f.source.IsDirectory)
-                    .Select(f => ksp.ToRelativeGameDir(f.destination));
+                return source
+                    ? FindInstallableFiles(module, filename, ksp)
+                        // Skip folders
+                        .Where(f => !f.source.IsDirectory)
+                        .Select(f => f.source.Name)
+                    : FindInstallableFiles(module, filename, ksp)
+                        // Skip folders
+                        .Where(f => !f.source.IsDirectory)
+                        .Select(f => ksp.ToRelativeGameDir(f.destination));
             }
             catch (ZipException)
             {

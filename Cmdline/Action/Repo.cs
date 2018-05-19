@@ -159,13 +159,8 @@ namespace CKAN.CmdLine
 
         private RepositoryList FetchMasterRepositoryList(Uri master_uri = null)
         {
-            if (master_uri == null)
-            {
-                master_uri = MainClass.GetGameInstance(Manager).game.RepositoryListURL;
-            }
-
-            string json = Net.DownloadText(master_uri);
-            return JsonConvert.DeserializeObject<RepositoryList>(json);
+            return JsonConvert.DeserializeObject<RepositoryList>(
+                Net.DownloadText(master_uri ?? MainClass.GetGameInstance(Manager).game.RepositoryListURL));
         }
 
         private int AvailableRepositories()

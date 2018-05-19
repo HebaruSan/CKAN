@@ -19,15 +19,8 @@ namespace CKAN.GUI
         public Timer refreshTimer;
 
         public RepositoryList FetchMasterRepositoryList(Uri master_uri = null)
-        {
-            if (master_uri == null)
-            {
-                master_uri = CurrentInstance.game.RepositoryListURL;
-            }
-
-            string json = Net.DownloadText(master_uri);
-            return JsonConvert.DeserializeObject<RepositoryList>(json);
-        }
+            => JsonConvert.DeserializeObject<RepositoryList>(
+                Net.DownloadText(master_uri ?? CurrentInstance.game.RepositoryListURL));
 
         public void UpdateRepo()
         {
