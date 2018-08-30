@@ -1068,7 +1068,7 @@
             this.KeyPreview = true;
             this.MainMenuStrip = this.menuStrip1;
             this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.MinimumSize = new System.Drawing.Size(1280, 700);
+            this.MinimumSize = new System.Drawing.Size(880, 400);
             this.Name = "Main";
             this.Text = "CKAN-GUI";
             this.menuStrip1.ResumeLayout(false);
