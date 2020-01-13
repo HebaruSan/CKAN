@@ -8,7 +8,7 @@ namespace CKAN.Versioning
     {
         private List<KspVersion> _versions = new List<KspVersion>();
 
-        public KspVersionCriteria (KspVersion v)
+        public KspVersionCriteria(KspVersion v)
         {
             if (v != null)
             {
@@ -40,6 +40,21 @@ namespace CKAN.Versioning
                 null,
                 _versions.Union(other.Versions).ToList()
             );
+        }
+
+        public override bool Equals(object obj)
+        {
+            KspVersionCriteria other = obj as KspVersionCriteria;
+            if (obj == null)
+            {
+                return false;
+            }
+            else
+            {
+                return !_versions.Except(other._versions).Any()
+                    && !other._versions.Except(_versions).Any();
+            }
+            return true;
         }
 
         public override String ToString()
