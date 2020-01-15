@@ -16,6 +16,9 @@ namespace CKAN
         /// </summary>
         /// <param name="crit">Versions to be considered compatible</param>
         /// <param name="available">Collection of mods from registry</param>
+        /// <param name="providers">Dictionary mapping every identifier to the modules providing it</param>
+        /// <param name="dlls">Collection of found dlls</param>
+        /// <param name="dlc">Collection of installed DLCs</param>
         public CompatibilitySorter(
             KspVersionCriteria crit,
             Dictionary<string, AvailableModule> available,
@@ -117,10 +120,6 @@ namespace CKAN
                 {
                     foreach (RelationshipDescriptor rel in m.depends)
                     {
-                        var candidates = RelationshipIdentifiers(rel)
-                            .Where(ident => providers.ContainsKey(ident))
-                            .SelectMany(ident => providers[ident])
-                            .Distinct();
                         bool foundCompat = false;
                         if (rel.MatchesAny(null, dlls, dlc))
                         {
@@ -129,6 +128,15 @@ namespace CKAN
                         }
                         else
                         {
+                            // Get the list of identifiers that would satisfy this dependency
+                            // (mostly only one, except for any_of relationships).
+                            // For each of those identifiers, if it is provided by at least one module, get all the modules
+                            // that provide it (and make sure each is only once in the list)
+                            var candidates = RelationshipIdentifiers(rel)
+                                .Where(ident => providers.ContainsKey(ident))
+                                .SelectMany(ident => providers[ident])
+                                .Distinct();
+
                             foreach (AvailableModule provider in candidates)
                             {
                                 string ident = provider.AllAvailable().First().identifier;
