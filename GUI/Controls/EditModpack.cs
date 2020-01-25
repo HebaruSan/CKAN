@@ -37,37 +37,39 @@ namespace CKAN
         public void LoadModule(CkanModule module, IRegistryQuerier registry)
         {
             this.module = module;
-            IdentifierTextBox.Text = module.identifier;
-            NameTextBox.Text       = module.name;
-            AbstractTextBox.Text   = module.@abstract;
-            VersionTextBox.Text    = module.version.ToString();
-            var options = new string[] { "" }.Concat(ServiceLocator.Container.Resolve<IKspBuildMap>().KnownVersions
-                .SelectMany(v => new KspVersion[] {
-                        new KspVersion(v.Major, v.Minor, v.Patch),
-                        new KspVersion(v.Major, v.Minor)
-                    })
-                .Distinct()
-                .OrderByDescending(v => v)
-                .Select(v => v.ToString())
-            );
-            KspVersionMinComboBox.DataSource = options.ToArray();
-            KspVersionMinComboBox.Text = (module.ksp_version_min ?? module.ksp_version)?.ToString();
-            KspVersionMaxComboBox.DataSource = options.ToArray();
-            KspVersionMaxComboBox.Text = (module.ksp_version_max ?? module.ksp_version)?.ToString();
-            LicenseComboBox.DataSource = License.valid_licenses.OrderBy(l => l).ToArray();
-            LicenseComboBox.Text = module.license?.FirstOrDefault()?.ToString();
-            LoadRelationships(registry);
+            Util.Invoke(this, () =>
+            {
+                IdentifierTextBox.Text = module.identifier;
+                NameTextBox.Text       = module.name;
+                AbstractTextBox.Text   = module.@abstract;
+                VersionTextBox.Text    = module.version.ToString();
+                var options = new string[] { "" }.Concat(ServiceLocator.Container.Resolve<IKspBuildMap>().KnownVersions
+                    .SelectMany(v => new KspVersion[] {
+                            new KspVersion(v.Major, v.Minor, v.Patch),
+                            new KspVersion(v.Major, v.Minor)
+                        })
+                    .Distinct()
+                    .OrderByDescending(v => v)
+                    .Select(v => v.ToString())
+                );
+                KspVersionMinComboBox.DataSource = options.ToArray();
+                KspVersionMinComboBox.Text = (module.ksp_version_min ?? module.ksp_version)?.ToString();
+                KspVersionMaxComboBox.DataSource = options.ToArray();
+                KspVersionMaxComboBox.Text = (module.ksp_version_max ?? module.ksp_version)?.ToString();
+                LicenseComboBox.DataSource = License.valid_licenses.OrderBy(l => l).ToArray();
+                LicenseComboBox.Text = module.license?.FirstOrDefault()?.ToString();
+                LoadRelationships(registry);
+            });
         }
 
-        public delegate void SelectedItemsChanged(ListView.SelectedListViewItemCollection items);
-        public event SelectedItemsChanged OnSelectedItemsChanged;
+        public event Action<ListView.SelectedListViewItemCollection> OnSelectedItemsChanged;
 
         public bool Wait(IUser user)
         {
             if (Platform.IsMono)
             {
                 // Workaround: make sure the ListView headers are drawn
-                RelationshipsListView.EndUpdate();
+                Util.Invoke(this, () => RelationshipsListView.EndUpdate());
             }
             this.user = user;
             task = new TaskCompletionSource<bool>();

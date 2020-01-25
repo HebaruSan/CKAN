@@ -20,7 +20,7 @@ namespace CKAN
             Task.Factory.StartNew(() =>
             {
                 AddStatusMessage("");
-                menuStrip1.Enabled = false;
+                Util.Invoke(this, () => menuStrip1.Enabled = false);
                 tabController.ShowTab("EditModpackTabPage", 2);
                 tabController.SetTabLock(true);
                 var mgr = RegistryManager.Instance(CurrentInstance);
@@ -30,7 +30,7 @@ namespace CKAN
                 tabController.ShowTab("ManageModsTabPage");
                 tabController.HideTab("EditModpackTabPage");
                 tabController.SetTabLock(false);
-                menuStrip1.Enabled = true;
+                Util.Invoke(this, () => menuStrip1.Enabled = true);
             });
         }
 
