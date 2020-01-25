@@ -20,6 +20,7 @@ namespace CKAN
             Task.Factory.StartNew(() =>
             {
                 AddStatusMessage("");
+                menuStrip1.Enabled = false;
                 tabController.ShowTab("EditModpackTabPage", 2);
                 tabController.SetTabLock(true);
                 var mgr = RegistryManager.Instance(CurrentInstance);
@@ -29,7 +30,22 @@ namespace CKAN
                 tabController.ShowTab("ManageModsTabPage");
                 tabController.HideTab("EditModpackTabPage");
                 tabController.SetTabLock(false);
+                menuStrip1.Enabled = true;
             });
+        }
+
+        private void EditModpack_OnSelectedItemsChanged(ListView.SelectedListViewItemCollection items)
+        {
+            var first = items.Cast<ListViewItem>().FirstOrDefault()?.Tag as ModuleRelationshipDescriptor;
+            var ident = first?.name;
+            if (!string.IsNullOrEmpty(ident) && mainModList.full_list_of_mod_rows.TryGetValue(ident, out DataGridViewRow row))
+            {
+                ActiveModInfo = row.Tag as GUIMod;
+            }
+            else
+            {
+                ActiveModInfo = null;
+            }
         }
 
         private static readonly List<ExportOption> specialExportOptions = new List<ExportOption>

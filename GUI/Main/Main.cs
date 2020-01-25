@@ -1199,20 +1199,6 @@ namespace CKAN
             );
         }
         
-        private void EditModpack_OnSelectedItemsChanged(ListView.SelectedListViewItemCollection items)
-        {
-            var first = items.Cast<ListViewItem>().FirstOrDefault()?.Tag as ModuleRelationshipDescriptor;
-            var ident = first?.name;
-            if (!string.IsNullOrEmpty(ident) && mainModList.full_list_of_mod_rows.TryGetValue(ident, out DataGridViewRow row))
-            {
-                ActiveModInfo = row.Tag as GUIMod;
-            }
-            else
-            {
-                ActiveModInfo = null;
-            }
-        }
-
         private void MainTabControl_OnSelectedIndexChanged(object sender, EventArgs e)
         {
             switch (MainTabControl.SelectedTab?.Name)

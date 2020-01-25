@@ -64,6 +64,11 @@ namespace CKAN
 
         public bool Wait(IUser user)
         {
+            if (Platform.IsMono)
+            {
+                // Workaround: make sure the ListView headers are drawn
+                RelationshipsListView.EndUpdate();
+            }
             this.user = user;
             task = new TaskCompletionSource<bool>();
             return task.Task.Result;
