@@ -128,14 +128,9 @@ namespace CKAN
             }
         }
 
-        private static readonly Regex alphanumeric = new Regex(
-            @"^[A-Za-z0-9-]+$",
-            RegexOptions.Compiled
-        );
-
         private bool TryFieldsToModule(out string error, out Control badField)
         {
-            if (!alphanumeric.IsMatch(IdentifierTextBox.Text))
+            if (!Identifier.ValidIdentifierPattern.IsMatch(IdentifierTextBox.Text))
             {
                 error = Properties.Resources.EditModpackBadIdentifier;
                 badField = IdentifierTextBox;
