@@ -104,7 +104,7 @@ namespace CKAN
             GroupToRelationships.Add(RecommendationsGroup, module.recommends);
             GroupToRelationships.Add(SuggestionsGroup,     module.suggests);
             GroupToRelationships.Add(IgnoredGroup,         ignored);
-            
+
             RelationshipsListView_ItemSelectionChanged(null, null);
         }
 
@@ -182,26 +182,22 @@ namespace CKAN
                 .Select(lvi => lvi.Group)
                 .Distinct()
                 .ToList();
-            switch (kinds.FirstOrDefault()?.Name)
+            if (kinds.Count == 1)
             {
-                case "DependsGroup":
-                    DependsRadioButton.Checked = true;
-                    break;
-                case "RecommendationsGroup":
-                    RecommendsRadioButton.Checked = true;
-                    break;
-                case "SuggestionsGroup":
-                    SuggestsRadioButton.Checked = true;
-                    break;
-                case "IgnoredGroup":
-                    IgnoreRadioButton.Checked = true;
-                    break;
-                default:
-                    DependsRadioButton.Checked    = false;
-                    RecommendsRadioButton.Checked = false;
-                    SuggestsRadioButton.Checked   = false;
-                    IgnoreRadioButton.Checked     = false;
-                    break;
+                switch (kinds.First().Name)
+                {
+                    case "DependsGroup":         DependsRadioButton.Checked    = true; break;
+                    case "RecommendationsGroup": RecommendsRadioButton.Checked = true; break;
+                    case "SuggestionsGroup":     SuggestsRadioButton.Checked   = true; break;
+                    case "IgnoredGroup":         IgnoreRadioButton.Checked     = true; break;
+                }
+            }
+            else
+            {
+                DependsRadioButton.Checked    = false;
+                RecommendsRadioButton.Checked = false;
+                SuggestsRadioButton.Checked   = false;
+                IgnoreRadioButton.Checked     = false;
             }
             if (RelationshipsListView.SelectedItems.Count > 0)
             {
@@ -222,21 +218,25 @@ namespace CKAN
         private void DependsRadioButton_CheckedChanged(object sender, EventArgs e)
         {
             MoveItemsTo(RelationshipsListView.SelectedItems.Cast<ListViewItem>(), DependsGroup, module.depends);
+            RelationshipsListView.Focus();
         }
 
         private void RecommendsRadioButton_CheckedChanged(object sender, EventArgs e)
         {
             MoveItemsTo(RelationshipsListView.SelectedItems.Cast<ListViewItem>(), RecommendationsGroup, module.recommends);
+            RelationshipsListView.Focus();
         }
 
         private void SuggestsRadioButton_CheckedChanged(object sender, EventArgs e)
         {
             MoveItemsTo(RelationshipsListView.SelectedItems.Cast<ListViewItem>(), SuggestionsGroup, module.suggests);
+            RelationshipsListView.Focus();
         }
 
         private void IgnoreRadioButton_CheckedChanged(object sender, EventArgs e)
         {
             MoveItemsTo(RelationshipsListView.SelectedItems.Cast<ListViewItem>(), IgnoredGroup, ignored);
+            RelationshipsListView.Focus();
         }
 
         private void MoveItemsTo(IEnumerable<ListViewItem> items, ListViewGroup group, List<RelationshipDescriptor> relationships)
