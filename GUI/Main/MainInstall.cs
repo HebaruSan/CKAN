@@ -59,10 +59,6 @@ namespace CKAN
                 HideWaitDialog(false);
                 menuStrip1.Enabled = true;
             }
-            finally
-            {
-                ChangeSet = null;
-            }
         }
 
         // this probably needs to be refactored
@@ -238,103 +234,6 @@ namespace CKAN
                         return;
                     }
                 }
-                catch (DependencyNotSatisfiedKraken ex)
-                {
-                    currentUser.RaiseMessage(Properties.Resources.MainInstallDepNotSatisfied, ex.parent, ex.module);
-                    return;
-                }
-                catch (ModuleNotFoundKraken ex)
-                {
-                    currentUser.RaiseMessage(Properties.Resources.MainInstallNotFound, ex.module);
-                    return;
-                }
-                catch (BadMetadataKraken ex)
-                {
-                    currentUser.RaiseMessage(Properties.Resources.MainInstallBadMetadata, ex.module, ex.Message);
-                    return;
-                }
-                catch (FileExistsKraken ex)
-                {
-                    if (ex.owningModule != null)
-                    {
-                        currentUser.RaiseMessage(
-                            Properties.Resources.MainInstallFileExists,
-                            ex.filename, ex.installingModule, ex.owningModule,
-                            Meta.GetVersion()
-                        );
-                    }
-                    else
-                    {
-                        currentUser.RaiseMessage(
-                            Properties.Resources.MainInstallUnownedFileExists,
-                            ex.installingModule, ex.filename
-                        );
-                    }
-                    currentUser.RaiseMessage(Properties.Resources.MainInstallGameDataReverted);
-                    return;
-                }
-                catch (InconsistentKraken ex)
-                {
-                    // The prettiest Kraken formats itself for us.
-                    currentUser.RaiseMessage(ex.InconsistenciesPretty);
-                    return;
-                }
-                catch (CancelledActionKraken)
-                {
-                    return;
-                }
-                catch (MissingCertificateKraken kraken)
-                {
-                    // Another very pretty kraken.
-                    currentUser.RaiseMessage(kraken.ToString());
-                    return;
-                }
-                catch (DownloadThrottledKraken kraken)
-                {
-                    string msg = kraken.ToString();
-                    currentUser.RaiseMessage(msg);
-                    if (YesNoDialog(string.Format(Properties.Resources.MainInstallOpenSettingsPrompt, msg),
-                        Properties.Resources.MainInstallOpenSettings,
-                        Properties.Resources.MainInstallNo))
-                    {
-                        // Launch the URL describing this host's throttling practices, if any
-                        if (kraken.infoUrl != null)
-                        {
-                            Utilities.ProcessStartURL(kraken.infoUrl.ToString());
-                        }
-                        // Now pretend they clicked the menu option for the settings
-                        Enabled = false;
-                        new SettingsDialog(currentUser).ShowDialog();
-                        Enabled = true;
-                    }
-                    return;
-                }
-                catch (ModuleDownloadErrorsKraken kraken)
-                {
-                    currentUser.RaiseMessage(kraken.ToString());
-                    currentUser.RaiseError(kraken.ToString());
-                    return;
-                }
-                catch (DirectoryNotFoundKraken kraken)
-                {
-                    currentUser.RaiseMessage("\r\n{0}", kraken.Message);
-                    return;
-                }
-                catch (DllNotFoundException)
-                {
-                    if (currentUser.RaiseYesNoDialog(Properties.Resources.MainInstallLibCurlMissing))
-                    {
-                        Utilities.ProcessStartURL("https://github.com/KSP-CKAN/CKAN/wiki/libcurl");
-                    }
-                    throw;
-                }
-                catch (ModuleIsDLCKraken kraken)
-                {
-                    string msg = string.Format(Properties.Resources.MainInstallCantInstallDLC, kraken.module.name);
-                    currentUser.RaiseMessage(msg);
-                    currentUser.RaiseError(msg);
-                    return;
-                }
             }
         }
 
@@ -386,67 +285,157 @@ namespace CKAN
 
         private void PostInstallMods(object sender, RunWorkerCompletedEventArgs e)
         {
-            KeyValuePair<bool, ModChanges> result = (KeyValuePair<bool, ModChanges>) e.Result;
-
             tabController.SetTabLock(false);
 
-            if (result.Key && !installCanceled)
+            switch (e.Error)
             {
-                // Rebuilds the list of GUIMods
-                UpdateModsList(null);
+                case DependencyNotSatisfiedKraken exc:
+                    currentUser.RaiseMessage(Properties.Resources.MainInstallDepNotSatisfied, exc.parent, exc.module);
+                    break;
 
-                if (modChangedCallback != null)
-                {
-                    foreach (var mod in result.Value)
+                case ModuleNotFoundKraken exc:
+                    currentUser.RaiseMessage(Properties.Resources.MainInstallNotFound, exc.module);
+                    break;
+
+                case BadMetadataKraken exc:
+                    currentUser.RaiseMessage(Properties.Resources.MainInstallBadMetadata, exc.module, exc.Message);
+                    break;
+
+                case FileExistsKraken exc:
+                    if (exc.owningModule != null)
                     {
-                        modChangedCallback(mod.Mod, mod.ChangeType);
+                        currentUser.RaiseMessage(
+                            Properties.Resources.MainInstallFileExists,
+                            exc.filename, exc.installingModule, exc.owningModule,
+                            Meta.GetVersion()
+                        );
                     }
-                }
+                    else
+                    {
+                        currentUser.RaiseMessage(
+                            Properties.Resources.MainInstallUnownedFileExists,
+                            exc.installingModule, exc.filename
+                        );
+                    }
+                    currentUser.RaiseMessage(Properties.Resources.MainInstallGameDataReverted);
+                    break;
 
-                // install successful
-                AddStatusMessage(Properties.Resources.MainInstallSuccess);
-                HideWaitDialog(true);
-            }
-            else if (installCanceled)
-            {
-                // User cancelled the installation
-                // Rebuilds the list of GUIMods
-                UpdateModsList(ChangeSet);
-                if (result.Key) {
+                case InconsistentKraken exc:
+                    currentUser.RaiseMessage(exc.InconsistenciesPretty);
+                    break;
+
+                case CancelledActionKraken exc:
+                    // No message needed, the user knows they cancelled
+                    break;
+
+                case MissingCertificateKraken exc:
+                    currentUser.RaiseMessage(exc.ToString());
+                    break;
+
+                case DownloadThrottledKraken exc:
+                    string msg = exc.ToString();
+                    currentUser.RaiseMessage(msg);
+                    if (YesNoDialog(string.Format(Properties.Resources.MainInstallOpenSettingsPrompt, msg),
+                        Properties.Resources.MainInstallOpenSettings,
+                        Properties.Resources.MainInstallNo))
+                    {
+                        // Launch the URL describing this host's throttling practices, if any
+                        if (exc.infoUrl != null)
+                        {
+                            Utilities.ProcessStartURL(exc.infoUrl.ToString());
+                        }
+                        // Now pretend they clicked the menu option for the settings
+                        Enabled = false;
+                        new SettingsDialog(currentUser).ShowDialog();
+                        Enabled = true;
+                    }
+                    break;
+
+                case ModuleDownloadErrorsKraken exc:
+                    currentUser.RaiseMessage(exc.ToString());
+                    currentUser.RaiseError(exc.ToString());
+                    break;
+
+                case DirectoryNotFoundKraken exc:
+                    currentUser.RaiseMessage("\r\n{0}", exc.Message);
+                    break;
+
+                case DllNotFoundException exc:
+                    if (currentUser.RaiseYesNoDialog(Properties.Resources.MainInstallLibCurlMissing))
+                    {
+                        Utilities.ProcessStartURL("https://github.com/KSP-CKAN/CKAN/wiki/libcurl");
+                    }
+                    break;
+
+                case ModuleIsDLCKraken exc:
+                    string dlcMsg = string.Format(Properties.Resources.MainInstallCantInstallDLC, exc.module.name);
+                    currentUser.RaiseMessage(dlcMsg);
+                    currentUser.RaiseError(dlcMsg);
+                    break;
+
+                case null:
+                    // No error
+                    KeyValuePair<bool, ModChanges> result = (KeyValuePair<bool, ModChanges>) e.Result;
+
+                    if (result.Key && !installCanceled)
+                    {
+                        // Rebuilds the list of GUIMods
+                        ManageMods.UpdateModsList(null);
+
+                        if (modChangedCallback != null)
+                        {
+                            foreach (var mod in result.Value)
+                            {
+                                modChangedCallback(mod.Mod, mod.ChangeType);
+                            }
+                        }
+
+                        // install successful
+                        AddStatusMessage(Properties.Resources.MainInstallSuccess);
+                        HideWaitDialog(true);
+                    }
+                    else if (installCanceled)
+                    {
+                        // User cancelled the installation
+                        // Rebuilds the list of GUIMods
+                        ManageMods.UpdateModsList();
+                        if (result.Key) {
+                            FailWaitDialog(
+                                Properties.Resources.MainInstallCancelTooLate,
+                                Properties.Resources.MainInstallCancelAfterInstall,
+                                Properties.Resources.MainInstallProcessComplete,
+                                result.Key
+                            );
+                        } else {
+                            FailWaitDialog(
+                                Properties.Resources.MainInstallProcessCanceled,
+                                Properties.Resources.MainInstallCanceledManually,
+                                Properties.Resources.MainInstallInstallCanceled,
+                                result.Key
+                            );
+                        }
+                    }
+                    else
+                    {
+                        // The install was unsuccessful, but no exception was thrown
+                        FailWaitDialog(
+                            Properties.Resources.MainInstallErrorInstalling,
+                            Properties.Resources.MainInstallKnownError,
+                            Properties.Resources.MainInstallFailed,
+                            result.Key
+                        );
+                    }
+                    break;
+
+                default:
+                    // An unknown error was thrown
                     FailWaitDialog(
-                        Properties.Resources.MainInstallCancelTooLate,
-                        Properties.Resources.MainInstallCancelAfterInstall,
-                        Properties.Resources.MainInstallProcessComplete,
-                        result.Key
+                        Properties.Resources.MainInstallErrorInstalling,
+                        Properties.Resources.MainInstallUnknownError,
+                        Properties.Resources.MainInstallFailed,
+                        false
                     );
-                } else {
-                    FailWaitDialog(
-                        Properties.Resources.MainInstallProcessCanceled,
-                        Properties.Resources.MainInstallCanceledManually,
-                        Properties.Resources.MainInstallInstallCanceled,
-                        result.Key
-                    );
-                }
-            }
-            else if (e.Error == null)
-            {
-                // The install was unsuccessful, but we did catch the exception.
-                FailWaitDialog(
-                    Properties.Resources.MainInstallErrorInstalling,
-                    Properties.Resources.MainInstallKnownError,
-                    Properties.Resources.MainInstallFailed,
-                    result.Key
-                );
-            }
-            else
-            {
-                // An unknown error was thrown which we didn't catch.
-                FailWaitDialog(
-                    Properties.Resources.MainInstallErrorInstalling,
-                    Properties.Resources.MainInstallUnknownError,
-                    Properties.Resources.MainInstallFailed,
-                    result.Key
-                );
+                    break;
             }
 
             Util.Invoke(this, () => Enabled = true);
