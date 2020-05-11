@@ -372,70 +372,57 @@ namespace CKAN
                     currentUser.RaiseMessage(dlcMsg);
                     currentUser.RaiseError(dlcMsg);
                     break;
+            }
 
-                case null:
-                    // No error
-                    KeyValuePair<bool, ModChanges> result = (KeyValuePair<bool, ModChanges>) e.Result;
+            KeyValuePair<bool, ModChanges> result = (KeyValuePair<bool, ModChanges>) e.Result;
 
-                    if (result.Key && !installCanceled)
+            if (result.Key && !installCanceled)
+            {
+                // Rebuilds the list of GUIMods
+                ManageMods.UpdateModsList(null);
+
+                if (modChangedCallback != null)
+                {
+                    foreach (var mod in result.Value)
                     {
-                        // Rebuilds the list of GUIMods
-                        ManageMods.UpdateModsList(null);
-
-                        if (modChangedCallback != null)
-                        {
-                            foreach (var mod in result.Value)
-                            {
-                                modChangedCallback(mod.Mod, mod.ChangeType);
-                            }
-                        }
-
-                        // install successful
-                        AddStatusMessage(Properties.Resources.MainInstallSuccess);
-                        HideWaitDialog(true);
+                        modChangedCallback(mod.Mod, mod.ChangeType);
                     }
-                    else if (installCanceled)
-                    {
-                        // User cancelled the installation
-                        // Rebuilds the list of GUIMods
-                        ManageMods.UpdateModsList();
-                        if (result.Key) {
-                            FailWaitDialog(
-                                Properties.Resources.MainInstallCancelTooLate,
-                                Properties.Resources.MainInstallCancelAfterInstall,
-                                Properties.Resources.MainInstallProcessComplete,
-                                result.Key
-                            );
-                        } else {
-                            FailWaitDialog(
-                                Properties.Resources.MainInstallProcessCanceled,
-                                Properties.Resources.MainInstallCanceledManually,
-                                Properties.Resources.MainInstallInstallCanceled,
-                                result.Key
-                            );
-                        }
-                    }
-                    else
-                    {
-                        // The install was unsuccessful, but no exception was thrown
-                        FailWaitDialog(
-                            Properties.Resources.MainInstallErrorInstalling,
-                            Properties.Resources.MainInstallKnownError,
-                            Properties.Resources.MainInstallFailed,
-                            result.Key
-                        );
-                    }
-                    break;
+                }
 
-                default:
-                    // An unknown error was thrown
+                // install successful
+                AddStatusMessage(Properties.Resources.MainInstallSuccess);
+                HideWaitDialog(true);
+            }
+            else if (installCanceled)
+            {
+                // User cancelled the installation
+                // Rebuilds the list of GUIMods
+                ManageMods.UpdateModsList();
+                if (result.Key) {
                     FailWaitDialog(
-                        Properties.Resources.MainInstallErrorInstalling,
-                        Properties.Resources.MainInstallUnknownError,
-                        Properties.Resources.MainInstallFailed,
-                        false
+                        Properties.Resources.MainInstallCancelTooLate,
+                        Properties.Resources.MainInstallCancelAfterInstall,
+                        Properties.Resources.MainInstallProcessComplete,
+                        result.Key
                     );
-                    break;
+                } else {
+                    FailWaitDialog(
+                        Properties.Resources.MainInstallProcessCanceled,
+                        Properties.Resources.MainInstallCanceledManually,
+                        Properties.Resources.MainInstallInstallCanceled,
+                        result.Key
+                    );
+                }
+            }
+            else
+            {
+                // The install was unsuccessful, but no exception was thrown
+                FailWaitDialog(
+                    Properties.Resources.MainInstallErrorInstalling,
+                    Properties.Resources.MainInstallKnownError,
+                    Properties.Resources.MainInstallFailed,
+                    result.Key
+                );
             }
 
             Util.Invoke(this, () => Enabled = true);
