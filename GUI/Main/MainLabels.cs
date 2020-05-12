@@ -8,14 +8,6 @@ namespace CKAN
 {
     public partial class Main
     {
-        #region Filter dropdown
-
-        #endregion
-
-        #region Right click menu
-
-        #endregion
-
         #region Notifications
 
         private void ManageMods_LabelsAfterUpdate(IEnumerable<GUIMod> mods)
