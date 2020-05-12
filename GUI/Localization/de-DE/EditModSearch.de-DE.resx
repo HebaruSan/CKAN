@@ -117,40 +117,13 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <metadata name="menuStrip2.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-    <value>236, 17</value>
-  </metadata>
-  <metadata name="Installed.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>True</value>
-  </metadata>
-  <metadata name="ModName.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>True</value>
-  </metadata>
-  <metadata name="Author.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>True</value>
-  </metadata>
-  <metadata name="InstalledVersion.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>True</value>
-  </metadata>
-  <metadata name="LatestVersion.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>True</value>
-  </metadata>
-  <metadata name="SizeCol.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>True</value>
-  </metadata>
-  <metadata name="Description.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>True</value>
-  </metadata>
-  <metadata name="ModListContextMenuStrip.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-    <value>351, 17</value>
-  </metadata>
-  <data name="$this.Localizable" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="$this.Language" type="System.Globalization.CultureInfo, mscorlib">
-    <value>(Default)</value>
-  </data>
-  <data name="FilterByAuthorLabel.Text" xml:space="preserve"><value>Nach Autorenname filtern:</value></data>
-  <data name="FilterByNameLabel.Text" xml:space="preserve"><value>Nach Modname filtern:</value></data>
-  <data name="FilterByDescriptionLabel.Text" xml:space="preserve"><value>Nach Beschreibung filtern:</value></data>
+  <data name="FilterCombinedLabel.Text" xml:space="preserve"><value>Suche:</value></data>
+  <data name="FilterByNameLabel.Text" xml:space="preserve"><value>Name:</value></data>
+  <data name="FilterByAuthorLabel.Text" xml:space="preserve"><value>Autor:</value></data>
+  <data name="FilterByDescriptionLabel.Text" xml:space="preserve"><value>Beschreibung:</value></data>
+  <data name="FilterByLanguageLabel.Text" xml:space="preserve"><value>Sprache:</value></data>
+  <data name="FilterByDependsLabel.Text" xml:space="preserve"><value>Hängt ab von:</value></data>
+  <data name="FilterByRecommendsLabel.Text" xml:space="preserve"><value>Empfiehlt:</value></data>
+  <data name="FilterBySuggestsLabel.Text" xml:space="preserve"><value>Schlägt vor:</value></data>
+  <data name="FilterByConflictsLabel.Text" xml:space="preserve"><value>Hat einen Konflikt mit:</value></data>
 </root>

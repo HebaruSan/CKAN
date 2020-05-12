@@ -185,15 +185,6 @@
   <data name="reinstallToolStripMenuItem.Text" xml:space="preserve"><value>Reinstall</value></data>
   <data name="downloadContentsToolStripMenuItem.Text" xml:space="preserve"><value>Download Contents</value></data>
   <data name="purgeContentsToolStripMenuItem.Text" xml:space="preserve"><value>Purge Contents</value></data>
-  <data name="FilterByAuthorLabel.Text" xml:space="preserve"><value>Filter by author name:</value></data>
-  <data name="FilterByAuthorTextBox.Location" type="System.Drawing.Point, System.Drawing"><value>543, 74</value></data>
-  <data name="FilterByAuthorTextBox.Size" type="System.Drawing.Size, System.Drawing"><value>170, 26</value></data>
-  <data name="FilterByNameLabel.Text" xml:space="preserve"><value>Filter by mod name:</value></data>
-  <data name="FilterByNameTextBox.Location" type="System.Drawing.Point, System.Drawing"><value>160, 74</value></data>
-  <data name="FilterByNameTextBox.Size" type="System.Drawing.Size, System.Drawing"><value>170, 26</value></data>
-  <data name="FilterByDescriptionLabel.Text" xml:space="preserve"><value>Filter by description:</value></data>
-  <data name="FilterByDescriptionTextBox.Location" type="System.Drawing.Point, System.Drawing"><value>912, 74</value></data>
-  <data name="FilterByDescriptionTextBox.Size" type="System.Drawing.Size, System.Drawing"><value>170, 26</value></data>
   <data name="labelsToolStripMenuItem.Text" xml:space="preserve"><value>Labels</value></data>
   <data name="editLabelsToolStripMenuItem.Text" xml:space="preserve"><value>Edit labels...</value></data>
 </root>
