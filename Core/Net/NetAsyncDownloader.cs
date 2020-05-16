@@ -364,6 +364,11 @@ namespace CKAN
                 totalBytesLeft += t.bytesLeft;
                 totalSize += t.size;
             }
+            foreach (Net.DownloadTarget t in queuedDownloads.ToList())
+            {
+                totalBytesLeft += t.size;
+                totalSize += t.size;
+            }
 
             int totalPercentage = (int)(((totalSize - totalBytesLeft) * 100) / (totalSize));
 
@@ -412,7 +417,6 @@ namespace CKAN
             {
                 log.InfoFormat("Finished downloading {0}", downloads[index].target.url);
             }
-            onOneCompleted.Invoke(downloads[index].target.url, downloads[index].path, downloads[index].error);
 
             if (throttledHosts.Contains(downloads[index].target.url.Host))
             {
@@ -425,6 +429,8 @@ namespace CKAN
                     DownloadModule(next);
                 }
             }
+
+            onOneCompleted.Invoke(downloads[index].target.url, downloads[index].path, downloads[index].error);
 
             if (++completed_downloads >= downloads.Count + queuedDownloads.Count)
             {
