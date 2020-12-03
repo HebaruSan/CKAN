@@ -9,6 +9,7 @@ using CKAN.Extensions;
 using CKAN.NetKAN.Extensions;
 using CKAN.NetKAN.Model;
 using CKAN.NetKAN.Services;
+using CKAN.Games;
 
 namespace CKAN.NetKAN.Transformers
 {
@@ -53,8 +54,9 @@ namespace CKAN.NetKAN.Transformers
                 ZipFile    zip  = new ZipFile(_http.DownloadModule(metadata));
 
                 log.Debug("Extracting locales");
+                GameInstance inst = new GameInstance(new KerbalSpaceProgram(), "/", "dummy", new NullUser());
                 // Extract the locale names from the ZIP's cfg files
-                var locales = _moduleService.GetConfigFiles(mod, zip)
+                var locales = _moduleService.GetConfigFiles(mod, zip, inst)
                     .Select(cfg => new StreamReader(zip.GetInputStream(cfg.source)).ReadToEnd())
                     .SelectMany(contents => localizationRegex.Matches(contents).Cast<Match>()
                         .Select(m => m.Groups["contents"].Value))
