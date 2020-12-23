@@ -84,7 +84,6 @@ namespace CKAN.GameVersionProviders
         /// <summary>
         /// Load a build map
         /// </summary>
-        /// <param name="source">Remote to download builds.json from GitHub (default), Cache to use the data from the last remote refresh, Embedded to use the builds.json built into the exe</param>
         public void Refresh()
         {
             if (TrySetRemoteBuildMap())   return;

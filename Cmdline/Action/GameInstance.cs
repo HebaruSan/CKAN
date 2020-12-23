@@ -332,7 +332,7 @@ namespace CKAN.CmdLine
                         }
                     }
                 }
-                // Try to use instanceNameOrPath as a path and create a new game isntance.
+                // Try to use instanceNameOrPath as a path and create a new game instance.
                 // If it's valid, go on.
                 else if (Manager.InstanceAt(instanceNameOrPath, newName) is CKAN.GameInstance instance && instance.Valid)
                 {

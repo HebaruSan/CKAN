@@ -375,7 +375,7 @@ namespace CKAN.CmdLine
 
         public SubCommandOptions(string[] args)
         {
-            options = new System.Collections.Generic.List<string>(args).GetRange(1, args.Length - 1);
+            options = new List<string>(args).GetRange(1, args.Length - 1);
         }
     }
 

@@ -19,7 +19,7 @@ namespace CKAN
         {
             if (master_uri == null)
             {
-                master_uri = Main.Instance.CurrentInstance.game.DefaultRepositoryURL;
+                master_uri = Main.Instance.CurrentInstance.game.RepositoryListURL;
             }
 
             string json = Net.DownloadText(master_uri);
