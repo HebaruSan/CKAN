@@ -338,28 +338,30 @@ namespace CKAN
             // Normalize the path before doing everything else
             string install_to = CKANPathUtils.NormalizePath(this.install_to);
 
-            if (install_to == ksp.game.PrimaryModDirectoryRelative
+            // The installation path cannot contain updirs
+            if (install_to.Contains("/../") || install_to.EndsWith("/.."))
+                throw new BadInstallLocationKraken("Invalid installation path: " + install_to);
+
+            if (ksp == null)
+            {
+                installDir = null;
+            }
+            else if (install_to == ksp.game.PrimaryModDirectoryRelative
                 || install_to.StartsWith($"{ksp.game.PrimaryModDirectoryRelative}/"))
             {
                 // The installation path can be either "GameData" or a sub-directory of "GameData"
-                // but it cannot contain updirs
-                if (install_to.Contains("/../") || install_to.EndsWith("/.."))
-                    throw new BadInstallLocationKraken("Invalid installation path: " + install_to);
-
                 string subDir = install_to.Substring(ksp.game.PrimaryModDirectoryRelative.Length);    // remove "GameData"
                 subDir = subDir.StartsWith("/") ? subDir.Substring(1) : subDir;    // remove a "/" at the beginning, if present
 
                 // Add the extracted subdirectory to the path of KSP's GameData
-                installDir = ksp == null
-                    ? null
-                    : (CKANPathUtils.NormalizePath(ksp.game.PrimaryModDirectory(ksp) + "/" + subDir));
+                installDir = CKANPathUtils.NormalizePath(ksp.game.PrimaryModDirectory(ksp) + "/" + subDir);
             }
             else
             {
                 switch (install_to)
                 {
                     case "GameRoot":
-                        installDir = ksp?.GameDir();
+                        installDir = ksp.GameDir();
                         break;
 
                     default:
