@@ -162,7 +162,7 @@
   <data name="CkanModuleDeserialisationError" xml:space="preserve"><value>JSON 反序列化错误: {0}</value></data>
   <data name="CkanModuleUnsupportedSpec" xml:space="preserve"><value>{0} 需要 CKAN {1}，我们无法读取它.</value></data>
   <data name="CkanModuleMissingRequired" xml:space="preserve"><value>{0} 缺少需要的 field {1}</value></data>
-  <data name="CkanModuleKspVersionMixed" xml:space="preserve"><value>ksp_version mixed with ksp_version_(min|max)</value></data>
+  <data name="CkanModuleKspVersionMixed" xml:space="preserve"><value>ksp_version 不能与 ksp_version_(min|max) 混用</value></data>
   <data name="CkanModuleNotAvailable" xml:space="preserve"><value>模组 {0} 的版本 {1} 不可用</value></data>
   <data name="CkanModuleNotInstalledOrAvailable" xml:space="preserve"><value>模组 {0} 未安装或不可用</value></data>
   <data name="CkanModuleAllVersions" xml:space="preserve"><value>所有版本</value></data>
@@ -256,7 +256,7 @@
   <data name="ModuleInstallerImportDeletePrompt" xml:space="preserve"><value>导入完成。 删除 {0} 个旧文件吗？</value></data>
   <data name="KrakenDependencyNotSatisfied" xml:space="preserve"><value> {0} 版本 {1} 的依赖项未满足</value></data>
   <data name="KrakenDependencyModuleNotFound" xml:space="preserve"><value>模组未找到: {0} {1}</value></data>
-  <data name="KrakenParentDependencyNotSatisfied" xml:space="preserve"><value>{0} dependency on {1} version {2} not satisfied</value></data>
+  <data name="KrakenParentDependencyNotSatisfied" xml:space="preserve"><value>{0} 的依赖项 {1} 版本 {2} 未满足</value></data>
   <data name="KrakenAny" xml:space="preserve"><value>(任意)</value></data>
   <data name="KrakenProvidedByMoreThanOne" xml:space="preserve"><value>模组 {0} 由多个可用模组提供。请从下列列表中选择一个:</value></data>
   <data name="KrakenInconsistenciesHeader" xml:space="preserve"><value>发现以下冲突:</value></data>
