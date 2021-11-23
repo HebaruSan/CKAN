@@ -124,7 +124,7 @@
   <data name="NetAsyncDownloaderDownloading" xml:space="preserve"><value>Загрузка "{0}"</value></data>
   <data name="NetAsyncDownloaderCancelled" xml:space="preserve"><value>Загрузка отменена пользователем</value></data>
   <data name="NetAsyncDownloaderProgress" xml:space="preserve"><value>{0}/сек — загружается — осталось {1}</value></data>
-  <data name="NetAsyncDownloaderTryingFallback" xml:space="preserve"><value>Не удалось загрузить "{0}", попытка отката к "{1}"</value></data>
+  <data name="NetAsyncDownloaderTryingFallback" xml:space="preserve"><value>Не удалось загрузить "{0}", будет использоваться альтернативный источник "{1}"</value></data>
   <data name="NetFileCacheCannotFind" xml:space="preserve"><value>Не удалось найти папку кэша: {0}</value></data>
   <data name="NetFileCacheZipError" xml:space="preserve"><value>Ошибка в шаге {0} для {1}: {2}</value></data>
   <data name="NetFileCacheZipTestArchiveFalse" xml:space="preserve"><value>ZipFile.TestArchive(true) вернуло false</value></data>

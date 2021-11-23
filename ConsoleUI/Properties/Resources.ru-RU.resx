@@ -127,14 +127,14 @@
   <data name="ColumnNumber" xml:space="preserve"><value>Столбец №{0}</value></data>
   <data name="ColumnNumberSortTip" xml:space="preserve"><value>Сортировка списка по столбцу №{0}</value></data>
   <data name="ColumnNameSortTip" xml:space="preserve"><value>Сортировка списка по столбцу №{0} </value></data>
-  <data name="CursorKeys" xml:space="preserve"><value>Клавиши курсора</value></data>
+  <data name="CursorKeys" xml:space="preserve"><value>Стрелки</value></data>
   <data name="Scroll" xml:space="preserve"><value>Прокрутка</value></data>
   <data name="ScrollMessages" xml:space="preserve"><value>Scroll Messages</value></data>
   <data name="Menu" xml:space="preserve"><value>Меню</value></data>
   <data name="Yes" xml:space="preserve"><value>Да</value></data>
   <data name="No" xml:space="preserve"><value>Нет</value></data>
   <data name="OK" xml:space="preserve"><value>OK</value></data>
-  <data name="Force" xml:space="preserve"><value>Принудительно</value></data>
+  <data name="Force" xml:space="preserve"><value>Принуд.</value></data>
   <data name="Tab" xml:space="preserve"><value>Tab</value></data>
   <data name="Enter" xml:space="preserve"><value>Enter</value></data>
   <data name="Esc" xml:space="preserve"><value>Esc</value></data>
@@ -169,22 +169,22 @@
   <data name="CompatibleVersionsTitle" xml:space="preserve"><value>Выберите совместимую версию</value></data>
   <data name="CompatibleVersionsListHeader" xml:space="preserve"><value>Определённая версия</value></data>
   <data name="CompatibleVersionsListAcceptTip" xml:space="preserve"><value>Выберите версию</value></data>
-  <data name="CompatibleVersionsGhostText" xml:space="preserve"><value>&lt;Введите версию&gt;</value></data>
+  <data name="CompatibleVersionsGhostText" xml:space="preserve"><value>&lt;Введите номер версии&gt;</value></data>
   <data name="CompatibleVersionsEntryAcceptTip" xml:space="preserve"><value>Принять значеие</value></data>
   <data name="ThemeNotFound" xml:space="preserve"><value>Тема {0} не существует</value></data>
   <data name="ThemeList" xml:space="preserve"><value>Доступные темы: {0}</value></data>
   <data name="RecommendationsLabel" xml:space="preserve"><value>Рекомендуются или предлагаются дополнительные модификации:</value></data>
-  <data name="RecommendationsInstallHeader" xml:space="preserve"><value>Установка</value></data>
-  <data name="RecommendationsNameHeader" xml:space="preserve"><value>Имя</value></data>
+  <data name="RecommendationsInstallHeader" xml:space="preserve"><value>Уст.</value></data>
+  <data name="RecommendationsNameHeader" xml:space="preserve"><value>Название</value></data>
   <data name="RecommendationsSourcesHeader" xml:space="preserve"><value>Источники</value></data>
   <data name="RecommendationsTitle" xml:space="preserve"><value>Рекомендации и предложения</value></data>
   <data name="ImportSelectTitle" xml:space="preserve"><value>Импортировать загрузки</value></data>
   <data name="ImportSelectHeader" xml:space="preserve"><value>Импорт</value></data>
   <data name="ImportProgressTitle" xml:space="preserve"><value>Импортирование загрузок</value></data>
   <data name="ImportProgressMessage" xml:space="preserve"><value>Вычисление...</value></data>
-  <data name="InstanceNameLabel" xml:space="preserve"><value>Имя:</value></data>
-  <data name="InstanceNameGhostText" xml:space="preserve"><value>&lt;Введите имя для данной сборки&gt;</value></data>
-  <data name="InstancePathGhostText" xml:space="preserve"><value>&lt;Введите путь к этой сборке&gt;</value></data>
+  <data name="InstanceNameLabel" xml:space="preserve"><value>Название:</value></data>
+  <data name="InstanceNameGhostText" xml:space="preserve"><value>&lt;Введите название данной сборки&gt;</value></data>
+  <data name="InstancePathGhostText" xml:space="preserve"><value>&lt;Введите путь к данной сборке&gt;</value></data>
   <data name="InstancePathLabel" xml:space="preserve"><value>Расположение сборки:</value></data>
   <data name="InstanceNameEmptyError" xml:space="preserve"><value>Имя не может быть пустым!</value></data>
   <data name="InstanceNameDuplicateError" xml:space="preserve"><value>{0} уже существует!</value></data>
@@ -193,16 +193,16 @@
   <data name="InstanceAddTitle" xml:space="preserve"><value>Добавить сборку игры</value></data>
   <data name="InstanceEditTitle" xml:space="preserve"><value>Изменить сборку игры</value></data>
   <data name="InstanceEditRepoFrameTitle" xml:space="preserve"><value>Источники списка модификаций</value></data>
-  <data name="InstanceEditCompatFrameTitle" xml:space="preserve"><value>Дополнительные совместимые версии</value></data>
+  <data name="InstanceEditCompatFrameTitle" xml:space="preserve"><value>Дополнительные совместимые версии игры</value></data>
   <data name="InstanceEditRepoIndexHeader" xml:space="preserve"><value>Указатель</value></data>
-  <data name="InstanceEditRepoNameHeader" xml:space="preserve"><value>Имя</value></data>
+  <data name="InstanceEditRepoNameHeader" xml:space="preserve"><value>Название</value></data>
   <data name="InstanceEditRepoURLHeader" xml:space="preserve"><value>URL</value></data>
   <data name="InstanceEditCompatVersionHeader" xml:space="preserve"><value>Версия</value></data>
   <data name="InstanceEditRegistryParseError" xml:space="preserve"><value>Не удалось извлечь источники списка модификаций из {0}.</value></data>
   <data name="InstanceListTitle" xml:space="preserve"><value>Сборки игры</value></data>
   <data name="InstanceListLabel" xml:space="preserve"><value>Выбрать или добавить сборку игры:</value></data>
-  <data name="InstanceListDefaultHeader" xml:space="preserve"><value>По умолчанию</value></data>
-  <data name="InstanceListNameHeader" xml:space="preserve"><value>Имя</value></data>
+  <data name="InstanceListDefaultHeader" xml:space="preserve"><value>Умл.</value></data>
+  <data name="InstanceListNameHeader" xml:space="preserve"><value>Название</value></data>
   <data name="InstanceListGameHeader" xml:space="preserve"><value>Игра</value></data>
   <data name="InstanceListVersionHeader" xml:space="preserve"><value>Версия</value></data>
   <data name="InstanceListPathHeader" xml:space="preserve"><value>Путь</value></data>
@@ -212,7 +212,8 @@
 {1}</value></data>
   <data name="InstanceListLocked" xml:space="preserve"><value>Блокиующий файл с ID процесса найден в {0}
 
-Это может означать, что другой процесс CKAN работает с этой сборкой. Вы можете удалить этот файл, но в таком случае весьма вероятно повреждение данных.
+Это может означать, что другой процесс CKAN работает с этой сборкой. 
+Вы можете удалить этот файл, но в таком случае вероятно повреждение данных.
 
 Хотите ли вы удалить блокирующий файл для получения доступа?</value></data>
   <data name="InstanceListNoVersion" xml:space="preserve"><value>&lt;НЕТ&gt;</value></data>
@@ -226,7 +227,7 @@
   <data name="InstallAuthTokenPrompt" xml:space="preserve"><value>{0}
 
 Изменить токены аутентификации?</value></data>
-  <data name="InstallTooManyModsNameHeader" xml:space="preserve"><value>Имя</value></data>
+  <data name="InstallTooManyModsNameHeader" xml:space="preserve"><value>Название</value></data>
   <data name="InstallBadMetadata" xml:space="preserve"><value>Найдены некорректные метаданные {0}: {1}</value></data>
   <data name="InstallUnsatisfiedDependency" xml:space="preserve"><value>{0} требует {1}, но он отсутствует в указателе или недоступен для вашей версии игры.
 {2}</value></data>
@@ -238,8 +239,8 @@
   <data name="ModInfoMenuTip" xml:space="preserve"><value>Ссылки</value></data>
   <data name="ModInfoAuthors" xml:space="preserve"><value>Автор: {0}</value></data>
   <data name="ModInfoLicence" xml:space="preserve"><value>Лицензия:</value></data>
-  <data name="ModInfoDownload" xml:space="preserve"><value>Загрузить:</value></data>
-  <data name="ModInfoDescriptionFrame" xml:space="preserve"><value>Описание</value></data>
+  <data name="ModInfoDownload" xml:space="preserve"><value>Размер:</value></data>
+  <data name="ModInfoDescriptionFrame" xml:space="preserve"><value>Описание модификации</value></data>
   <data name="ModInfoUnavailableWarning" xml:space="preserve"><value>
 ВНИМАНИЕ: Эта модификация установлена, но более не доступна.
 Если вы удалите её, CKAN не сможет её переустановить.</value></data>
@@ -274,7 +275,7 @@
   <data name="ModInfoOtherVersions" xml:space="preserve"><value>Другие версии</value></data>
   <data name="ModInfoUnavailableInstalledOn" xml:space="preserve"><value>НЕДОСТУПЕН/Установлен {0}</value></data>
   <data name="ModInfoUnavailableInstalledManually" xml:space="preserve"><value>НЕДОСТУПЕН/Установлен вручную</value></data>
-  <data name="ModInfoCompatibleWith" xml:space="preserve"><value>Совместим с:</value></data>
+  <data name="ModInfoCompatibleWith" xml:space="preserve"><value>Совместимо с:</value></data>
   <data name="ModInfoHostedOn" xml:space="preserve"><value>Находится в {0}</value></data>
   <data name="ModInfoReportBugsOn" xml:space="preserve"><value>Сообщать об ошибках в {0}</value></data>
   <data name="ModInfoRepositoryOn" xml:space="preserve"><value>Репозиторий в {0}</value></data>
@@ -285,11 +286,11 @@
   <data name="ModInfoDownloading" xml:space="preserve"><value>Загрузка {0}</value></data>
   <data name="ModInfoDownloadCorrupted" xml:space="preserve"><value>Загрузка не завершена, файл повреждён</value></data>
   <data name="ModInfoDownloadFailed" xml:space="preserve"><value>Загрузка не завершена: {0}</value></data>
-  <data name="ProgressTitle" xml:space="preserve"><value>Выполнение</value></data>
+  <data name="ProgressTitle" xml:space="preserve"><value>Выполнение операции</value></data>
   <data name="ProgressMessages" xml:space="preserve"><value>Сообщения</value></data>
   <data name="SplashLoading" xml:space="preserve"><value>Загрузка...</value></data>
   <data name="SplashPressAnyKey" xml:space="preserve"><value>Для продолжения нажмите любую клавишу</value></data>
-  <data name="RepoNameLabel" xml:space="preserve"><value>Имя:</value></data>
+  <data name="RepoNameLabel" xml:space="preserve"><value>Название:</value></data>
   <data name="RepoNameGhostText" xml:space="preserve"><value>&lt;Введите имя для данного репозитория&gt;</value></data>
   <data name="RepoURLLabel" xml:space="preserve"><value>URL:</value></data>
   <data name="RepoURLGhostText" xml:space="preserve"><value>&lt;Введите адрес репозитория&gt;</value></data>
@@ -298,13 +299,13 @@
   <data name="RepoNameEmptyError" xml:space="preserve"><value>Имя не может быть пустым!</value></data>
   <data name="RepoNameDuplicateError" xml:space="preserve"><value>{0} уже существует!</value></data>
   <data name="RepoURLEmptyError" xml:space="preserve"><value>Адрес не может быть пустым!</value></data>
-  <data name="ModListNameHeader" xml:space="preserve"><value>Имя</value></data>
+  <data name="ModListNameHeader" xml:space="preserve"><value>Название</value></data>
   <data name="ModListVersionHeader" xml:space="preserve"><value>Версия</value></data>
-  <data name="ModListMaxGameVersionHeader" xml:space="preserve"><value>Максимальная версия игры</value></data>
-  <data name="ModListSearchFocusedGhostText" xml:space="preserve"><value>&lt;Поиск...&gt;</value></data>
-  <data name="ModListSearchUnfocusedGhostText" xml:space="preserve"><value>&lt;Ctrl+F для поиска&gt;</value></data>
+  <data name="ModListMaxGameVersionHeader" xml:space="preserve"><value>Макс.вер.</value></data>
+  <data name="ModListSearchFocusedGhostText" xml:space="preserve"><value>&lt;Введите текст для поиска...&gt;</value></data>
+  <data name="ModListSearchUnfocusedGhostText" xml:space="preserve"><value>&lt;Нажмите Ctrl+F для поиска&gt;</value></data>
   <data name="ModListCount" xml:space="preserve"><value>{0} модификаций</value></data>
-  <data name="ModListSizeOnDisk" xml:space="preserve"><value>займёт {0}</value></data>
+  <data name="ModListSizeOnDisk" xml:space="preserve"><value>Занимает {0}</value></data>
   <data name="ModListInstallTip" xml:space="preserve"><value>Установить</value></data>
   <data name="ModListUpgradeTip" xml:space="preserve"><value>Обновить</value></data>
   <data name="ModListReplaceTip" xml:space="preserve"><value>Заменить</value></data>
@@ -335,7 +336,7 @@
   <data name="ModListHelpMenu" xml:space="preserve"><value>Помощь</value></data>
   <data name="ModListHelpMenuTip" xml:space="preserve"><value>Подсказки и помощь</value></data>
   <data name="ModListQuitMenu" xml:space="preserve"><value>Выход</value></data>
-  <data name="ModListQuitMenuTip" xml:space="preserve"><value>Выйти в DOS</value></data>
+  <data name="ModListQuitMenuTip" xml:space="preserve"><value>Выйти в ОС</value></data>
   <data name="ModListCaptureKeyMenu" xml:space="preserve"><value>ОТЛАДКА: Захват нажатий...</value></data>
   <data name="ModListCaptureKeyMenuTip" xml:space="preserve"><value>Отладочная информация о том, как система отображает нажатия клавиш</value></data>
   <data name="ModListPressAKey" xml:space="preserve"><value>Нажмите клавишу</value></data>
@@ -345,14 +346,14 @@
   <data name="ModListNewMod" xml:space="preserve"><value>С последнего обновления доступна {0} новая модификация. Показать?</value></data>
   <data name="ModListNewMods" xml:space="preserve"><value>С последнего обновления доступны {0} новые модификации. Показать?</value></data>
   <data name="ModListScanBad" xml:space="preserve"><value>{0} Репозиторий не сохранён.</value></data>
-  <data name="ModListExportPrefix" xml:space="preserve"><value>установка</value></data>
+  <data name="ModListExportPrefix" xml:space="preserve"><value>установленные</value></data>
   <data name="ModListExported" xml:space="preserve"><value>Список модификаций экспортирован в {0}</value></data>
   <data name="ModListExportFailed" xml:space="preserve"><value>Экспорт не удался: {0}</value></data>
   <data name="ModListHelpSymbolHeader" xml:space="preserve"><value>Символы статуса</value></data>
   <data name="ModListHelpInstalled" xml:space="preserve"><value>Установлен</value></data>
   <data name="ModListHelpAutoInstalled" xml:space="preserve"><value>Автоустановлен</value></data>
-  <data name="ModListHelpUpgradeable" xml:space="preserve"><value>Возможно обновление</value></data>
-  <data name="ModListHelpManuallyInstalled" xml:space="preserve"><value>Установлен вручную</value></data>
+  <data name="ModListHelpUpgradeable" xml:space="preserve"><value>Возм. обновление</value></data>
+  <data name="ModListHelpManuallyInstalled" xml:space="preserve"><value>Уст. вручную</value></data>
   <data name="ModListHelpReplaceable" xml:space="preserve"><value>Возможна замена</value></data>
   <data name="ModListHelpUnavailable" xml:space="preserve"><value>Недоступен</value></data>
   <data name="ModListHelpBasicKeysHeader" xml:space="preserve"><value>Основные клавиши</value></data>
@@ -363,8 +364,8 @@
   <data name="ModListHelpAuthor" xml:space="preserve"><value>автор</value></data>
   <data name="ModListHelpName" xml:space="preserve"><value>имя</value></data>
   <data name="ModListHelpSearchAuthor" xml:space="preserve"><value>Модификации автора</value></data>
-  <data name="ModListHelpSearchInstalled" xml:space="preserve"><value>Установленные модификации</value></data>
-  <data name="ModListHelpSearchUpgradeable" xml:space="preserve"><value>Модификации с возможностью обновления</value></data>
+  <data name="ModListHelpSearchInstalled" xml:space="preserve"><value>Установленные мод-ии</value></data>
+  <data name="ModListHelpSearchUpgradeable" xml:space="preserve"><value>Мод. с возм. обновления</value></data>
   <data name="ModListHelpSearchDepends" xml:space="preserve"><value>Зависящие от</value></data>
   <data name="ModListHelpSearchConflicts" xml:space="preserve"><value>Конфликтующие с</value></data>
   <data name="ModListHelpSearchNew" xml:space="preserve"><value>Новые модификации</value></data>
@@ -375,14 +376,14 @@
 использовать её так же, как нам её создавать.
 
 Если вы заплатили за {0}, попытайтесь вернуть деньги,
-так как {0} можно загрузить бесплатно с
+так как его можно бесплатно загрузить с
 {2}
 
 Если у вас возникают проблемы с использованием {0},
-пожалуйста, отправьте запрос на
+пожалуйста, отправьте отчёт об ошибке на
 {3}
 
-{0} БЫЛ СОЗДАН {0} АВТОРАМИ:
+СОЗДАТЕЛИ {0}:
 {4}
 </value></data>
 </root>
