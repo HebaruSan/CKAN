@@ -13,7 +13,7 @@ namespace Tests.CmdLine
         /// .resx files should never have a $this.Language property because it
         /// does not deserialize properly in Windows when serialized on Mono 6+
         ///
-        /// This test covers the GUI/Properties/Resources.resx files.
+        /// This test covers the CmdLine/Properties/Resources.resx files.
         /// </summary>
         [Test]
         public void PropertiesResources_LanguageResource_NotSet()
