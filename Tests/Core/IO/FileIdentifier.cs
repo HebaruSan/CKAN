@@ -1,8 +1,7 @@
 using System.IO;
-using System.Text;
 
-using ICSharpCode.SharpZipLib.GZip;
-using ICSharpCode.SharpZipLib.Tar;
+using SharpCompress.Writers;
+using SharpCompress.Common;
 using NUnit.Framework;
 
 using CKAN;
@@ -51,9 +50,12 @@ namespace Tests.Core.IO
             // Arrange / Act
             var path = Path.GetTempFileName();
             using (var outputStream = File.OpenWrite(path))
-            using (var tarStream    = new TarOutputStream(outputStream, Encoding.UTF8))
+            using (var writer = WriterFactory.Open(outputStream, ArchiveType.Tar,
+                                                   new WriterOptions(CompressionType.None)
+                                                   {
+                                                       LeaveStreamOpen = true
+                                                   }))
             {
-                tarStream.Finish();
             }
 
             // Assert
@@ -88,10 +90,12 @@ namespace Tests.Core.IO
             // Arrange / Act
             var path = Path.GetTempFileName();
             using (var outputStream = File.OpenWrite(path))
-            using (var gzipStream   = new GZipOutputStream(outputStream))
-            using (var tarStream    = new TarOutputStream(gzipStream, Encoding.UTF8))
+            using (var writer = WriterFactory.Open(outputStream, ArchiveType.Tar,
+                                                   new WriterOptions(CompressionType.GZip)
+                                                   {
+                                                       LeaveStreamOpen = true
+                                                   }))
             {
-                tarStream.Finish();
             }
 
             // Assert

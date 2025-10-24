@@ -9,9 +9,7 @@ using System.Runtime.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using ChinhDo.Transactions.FileManager;
-using ICSharpCode.SharpZipLib.GZip;
-using ICSharpCode.SharpZipLib.Tar;
-using ICSharpCode.SharpZipLib.Zip;
+using SharpCompress.Archives;
 using log4net;
 
 using CKAN.IO;
@@ -189,39 +187,32 @@ namespace CKAN
         {
             inputStream.Seek(0, SeekOrigin.Begin);
             using (var progressStream = new ReadProgressStream(inputStream, progress))
-            using (var gzipStream     = new GZipInputStream(progressStream))
-            using (var tarStream      = new TarInputStream(gzipStream, Encoding.UTF8))
+            using (var archive        = ArchiveFactory.Open(progressStream))
             {
                 (List<CkanModule>               modules,
                  SortedDictionary<string, int>? counts,
                  GameVersion[]?                 versions,
                  Repository[]?                  repos,
-                 bool                           unsupSpec) = AggregateArchiveEntries(archiveEntriesFromTar(tarStream, game));
+                 bool                           unsupSpec) = AggregateArchiveEntries(archiveEntriesFromTar(archive, game));
                 return new RepositoryData(modules, counts, versions, repos, unsupSpec);
             }
         }
 
-        private static ParallelQuery<ArchiveEntry?> archiveEntriesFromTar(TarInputStream tarStream, IGame game)
-            => Partitioner.Create(getTarEntries(tarStream))
+        private static ParallelQuery<ArchiveEntry?> archiveEntriesFromTar(IArchive archive, IGame game)
+            => Partitioner.Create(getTarEntries(archive))
                           .AsParallel()
-                          .Select(tuple => getArchiveEntry(tuple.Item1.Name,
+                          .Select(tuple => getArchiveEntry(tuple.Item1.Key ?? "",
                                                            () => tuple.Item2,
                                                            game,
-                                                           tarStream.Position));
+                                                           // TODO: Can we still do things in parallel?
+                                                           0));
 
-        private static IEnumerable<Tuple<TarEntry, string?>> getTarEntries(TarInputStream tarStream)
-        {
-            TarEntry entry;
-            while ((entry = tarStream.GetNextEntry()) != null)
-            {
-                if (!entry.Name.EndsWith(".frozen"))
-                {
-                    yield return new Tuple<TarEntry, string?>(entry, tarStreamString(tarStream, entry));
-                }
-            }
-        }
+        private static IEnumerable<Tuple<IArchiveEntry, string?>> getTarEntries(IArchive archive)
+            => archive.Entries
+                      .Where(entry => entry.Key?.EndsWith(".frozen") ?? false)
+                      .Select(entry => new Tuple<IArchiveEntry, string?>(entry, tarStreamString(entry)));
 
-        private static string? tarStreamString(TarInputStream stream, TarEntry entry)
+        private static string? tarStreamString(IArchiveEntry entry)
         {
             // Read each file into a buffer.
             int buffer_size;
@@ -232,12 +223,13 @@ namespace CKAN
             }
             catch (OverflowException)
             {
-                log.ErrorFormat("Error processing {0}: Metadata size too large.", entry.Name);
+                log.ErrorFormat("Error processing {0}: Metadata size too large.", entry.Key);
                 return null;
             }
 
             byte[] buffer = new byte[buffer_size];
 
+            var stream = entry.OpenEntryStream();
             stream.Read(buffer, 0, buffer_size);
 
             // Convert the buffer data to a string.
@@ -248,27 +240,27 @@ namespace CKAN
         {
             inputStream.Seek(0, SeekOrigin.Begin);
             using (var progressStream = new ReadProgressStream(inputStream, progress))
-            using (var zipfile = new ZipFile(progressStream))
+            using (var archive        = ArchiveFactory.Open(progressStream))
             {
                 (List<CkanModule>               modules,
                  SortedDictionary<string, int>? counts,
                  GameVersion[]?                 versions,
                  Repository[]?                  repos,
-                 bool                           unsupSpec) = AggregateArchiveEntries(archiveEntriesFromZip(zipfile, game));
-                zipfile.Close();
+                 bool                           unsupSpec) = AggregateArchiveEntries(archiveEntriesFromZip(archive, game));
                 return new RepositoryData(modules, counts, versions, repos, unsupSpec);
             }
         }
 
-        private static ParallelQuery<ArchiveEntry?> archiveEntriesFromZip(ZipFile zipfile, IGame game)
-            => zipfile.Cast<ZipEntry>()
+        private static ParallelQuery<ArchiveEntry?> archiveEntriesFromZip(IArchive archive, IGame game)
+            => archive.Entries
                       .ToArray()
                       .AsParallel()
                       .Select(entry => getArchiveEntry(
-                                           entry.Name,
-                                           () => new StreamReader(zipfile.GetInputStream(entry)).ReadToEnd(),
+                                           entry.Key ?? "",
+                                           () => new StreamReader(entry.OpenEntryStream()).ReadToEnd(),
                                            game,
-                                           entry.Offset));
+                                           // TODO: Can we still do things in parallel?
+                                           0));
 
         private static ArchiveList AggregateArchiveEntries(ParallelQuery<ArchiveEntry?> entries)
             => entries.Aggregate(new ArchiveList(new List<CkanModule>(), null, null, null, false),

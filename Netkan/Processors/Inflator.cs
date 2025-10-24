@@ -7,13 +7,14 @@ using System.Diagnostics.CodeAnalysis;
 using Autofac;
 using log4net;
 
+using CKAN.Extensions;
 using CKAN.Configuration;
+using CKAN.Games;
 using CKAN.NetKAN.Model;
 using CKAN.NetKAN.Services;
 using CKAN.NetKAN.Transformers;
 using CKAN.NetKAN.Validators;
-using CKAN.Games;
-using CKAN.Extensions;
+using CKAN.NetKAN.Sources.Github;
 
 namespace CKAN.NetKAN.Processors
 {
@@ -45,27 +46,26 @@ namespace CKAN.NetKAN.Processors
                    userAgent, prerelease, game,
                    cache,
                    new CachingHttpService(cache, overwriteCache, userAgent),
-                   new ModuleService(game),
                    new FileService(cache))
         {
         }
 
-        internal Inflator(string?        githubToken,
-                          string?        gitlabToken,
-                          string?        userAgent,
-                          bool?          prerelease,
-                          IGame          game,
-                          NetFileCache   cache,
-                          IHttpService   http,
-                          IModuleService moduleService,
-                          IFileService   fileService)
+        internal Inflator(string?      githubToken,
+                          string?      gitlabToken,
+                          string?      userAgent,
+                          bool?        prerelease,
+                          IGame        game,
+                          NetFileCache cache,
+                          IHttpService http,
+                          IFileService fileService)
         {
             log.Debug("Initializing inflator");
             this.cache    = cache;
             this.http     = http;
-            ckanValidator = new CkanValidator(http, moduleService, game, githubToken);
-            transformer   = new NetkanTransformer(http, fileService, moduleService,
-                                                  githubToken, gitlabToken, userAgent,
+            var ghApi     = new GithubApi(http, githubToken);
+            ckanValidator = new CkanValidator(http, new SpaceWarpInfoLoader(http, ghApi), game);
+            transformer   = new NetkanTransformer(http, ghApi, fileService,
+                                                  gitlabToken, userAgent,
                                                   prerelease, game, netkanValidator);
         }
 

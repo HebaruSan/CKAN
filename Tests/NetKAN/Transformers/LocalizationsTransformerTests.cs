@@ -1,9 +1,10 @@
 using System.IO;
 using System.Linq;
 
-using NUnit.Framework;
+using SharpCompress.Common;
+using SharpCompress.Writers;
 using Newtonsoft.Json.Linq;
-using ICSharpCode.SharpZipLib.Zip;
+using NUnit.Framework;
 using Moq;
 
 using CKAN.Games.KerbalSpaceProgram;
@@ -57,23 +58,20 @@ namespace Tests.NetKAN.Transformers
                                        "",
                                    });
                 var zipPath = Path.Combine(dir, "mod.zip");
-                using (var zip = ZipFile.Create(zipPath))
+                using (var stream = File.OpenWrite(zipPath))
+                using (var writer = WriterFactory.Open(stream, ArchiveType.Zip,
+                                                       new WriterOptions(CompressionType.Deflate)))
                 {
-                    zip.BeginUpdate();
-                    zip.Add(cfgPath, "LocalizedMod/lang.cfg");
-                    zip.CommitUpdate();
-                    zip.Close();
+                    writer.Write("LocalizedMod/lang.cfg", new FileInfo(cfgPath));
                 }
                 var http    = new Mock<IHttpService>();
                 http.Setup(h => h.DownloadModule(It.IsAny<Metadata>()))
                     .Returns(zipPath);
                 var game    = new KerbalSpaceProgram();
-                var modSvc  = new ModuleService(game);
-                var sut     = new LocalizationsTransformer(http.Object, modSvc);
+                var sut     = new LocalizationsTransformer();
 
                 // Act
-                var result = sut.Transform(new Metadata(jobj), opts)
-                                .Single();
+                var result = sut.Transform(new Metadata(jobj));
 
                 // Assert
                 Assert.IsTrue(result.AllJson.ContainsKey("localizations"));

@@ -1,17 +1,18 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
+using SharpCompress.Common;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using log4net;
 
+using CKAN.Avc;
+using CKAN.Versioning;
 using CKAN.NetKAN.Extensions;
 using CKAN.NetKAN.Model;
 using CKAN.NetKAN.Services;
-using CKAN.NetKAN.Validators;
-using CKAN.Avc;
 using CKAN.NetKAN.Sources.Github;
-using CKAN.Versioning;
 
 namespace CKAN.NetKAN.Transformers
 {
@@ -19,57 +20,51 @@ namespace CKAN.NetKAN.Transformers
     /// An <see cref="ITransformer"/> that populates version data from an AVC version file included in the
     /// distribution package.
     /// </summary>
-    internal sealed class AvcTransformer : ITransformer
+    internal sealed class AvcTransformer : IContentTransformer
     {
-        private static readonly ILog Log = LogManager.GetLogger(typeof(AvcTransformer));
-
-        private readonly IHttpService   _http;
-        private readonly IModuleService _moduleService;
-        private readonly IGithubApi?    _github;
-        private readonly VrefValidator  _vrefValidator;
+        public AvcTransformer(IHttpService http,
+                              IGithubApi   github)
+        {
+            _http   = http;
+            _github = github;
+        }
 
         public string Name => "avc";
 
-        public AvcTransformer(IHttpService   http,
-                              IModuleService moduleService,
-                              IGithubApi?    github)
+        public void VisitContainedFile(Metadata     metadata,
+                                       CkanModule   module,
+                                       IEntry       entry,
+                                       bool         installing,
+                                       Func<string> getContents)
         {
-            _http          = http;
-            _moduleService = moduleService;
-            _github        = github;
-            _vrefValidator = new VrefValidator(_http, _moduleService);
+            if (metadata.Vref?.Source == "ksp-avc"
+                && (metadata.Vref.Id != null
+                        ? entry.Key == metadata.Vref.Id
+                        : (entry.Key?.EndsWith(".version") ?? false))
+                && JsonConvert.DeserializeObject<AvcVersion>(getContents())
+                   is AvcVersion avc)
+            {
+                (installing ? installingAvcs : notInstallingAvcs).Add(avc);
+            }
+            else if (installing && (entry.Key?.EndsWith(".version") ?? false))
+            {
+                nonMatching = entry.Key;
+            }
         }
 
-        public IEnumerable<Metadata> Transform(Metadata metadata, TransformOptions opts)
+        public Metadata Transform(Metadata metadata)
         {
-            _vrefValidator.Validate(metadata);
-
             if (metadata.Vref?.Source == "ksp-avc")
             {
-
                 Log.InfoFormat("Executing internal AVC transformation with {0}", metadata.Vref);
                 Log.DebugFormat("Input metadata:{0}{1}", Environment.NewLine, metadata.AllJson);
 
-                var noVersion = metadata.Version == null;
-
-                var json = metadata.Json();
-                if (noVersion)
-                {
-                    json["version"] = "0"; // TODO: DBB: Dummy version necessary to the next statement doesn't throw
-                }
-
-                var mod = CkanModule.FromJson(json.ToString());
-
-                if (noVersion)
-                {
-                    json.Remove("version");
-                }
-
-                var file = _http.DownloadModule(metadata);
-                if (file != null
-                    && _moduleService.GetInternalAvc(mod, file, metadata.Vref.Id) is AvcVersion avc)
+                if ((installingAvcs.FirstOrDefault() ?? notInstallingAvcs.FirstOrDefault())
+                    is AvcVersion avc)
                 {
                     Log.Info("Found internal AVC version file");
+
+                    var json = metadata.Json();
 
                     var resourcesJson = (JObject?)json["resources"];
                     var remoteUri = resourcesJson?["remote-avc"] != null
@@ -127,14 +122,18 @@ namespace CKAN.NetKAN.Transformers
                     // It's cool if we don't have version info at all, it's optional in the AVC spec.
 
                     Log.DebugFormat("Transformed metadata:{0}{1}", Environment.NewLine, json);
+                    return new Metadata(json);
                 }
-
-                yield return new Metadata(json);
+                else
+                {
+                    Log.Warn("$vref is ksp-avc, version file missing");
+                }
             }
-            else
+            else if (nonMatching is string avcPath)
             {
-                yield return metadata;
+                Log.WarnFormat("$vref is not ksp-avc, version file present: {0}", avcPath);
             }
+            return metadata;
         }
 
         public static void ApplyVersions(Metadata metadata, JObject json, AvcVersion avc)
@@ -177,5 +176,14 @@ namespace CKAN.NetKAN.Transformers
         {
             "forum.kerbalspaceprogram.com",
         };
+
+        private readonly IHttpService _http;
+        private readonly IGithubApi   _github;
+
+        private readonly List<AvcVersion> installingAvcs    = new List<AvcVersion>();
+        private readonly List<AvcVersion> notInstallingAvcs = new List<AvcVersion>();
+        private          string?          nonMatching       = null;
+
+        private static readonly ILog Log = LogManager.GetLogger(typeof(AvcTransformer));
     }
 }

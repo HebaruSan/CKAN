@@ -4,8 +4,8 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Threading;
 
-using ICSharpCode.SharpZipLib.Core;
-using ICSharpCode.SharpZipLib.Zip;
+using SharpCompress.Archives;
+using SharpCompress.Readers;
 using log4net;
 using ChinhDo.Transactions.FileManager;
 
@@ -18,9 +18,11 @@ namespace CKAN.IO
 {
     public struct InstallableFile
     {
-        public ZipEntry source;
-        public string   destination;
-        public bool     makedir;
+        public IArchiveEntry entry;
+        public string        relDest;
+        public bool          isDir;
+        public long          size;
+        public bool          makedir;
     }
 
     public class ModuleInstaller
@@ -355,19 +357,22 @@ namespace CKAN.IO
                 filteredCount = 0;
                 return createdPaths;
             }
-            using (ZipFile zipfile = new ZipFile(zip_filename))
+            var filters = config.GetGlobalInstallFilters(instance.Game)
+                                .Concat(instance.InstallFilters)
+                                .ToHashSet();
+            using (var archive = ArchiveFactory.Open(zip_filename,
+                                                     new ReaderOptions
+                                                     {
+                                                         LeaveStreamOpen = true
+                                                     }))
             {
-                var filters = config.GetGlobalInstallFilters(instance.Game)
-                                    .Concat(instance.InstallFilters)
-                                    .ToHashSet();
-                var groups = FindInstallableFiles(module, zipfile, instance, instance.Game)
-                    // Skip the file if it's a ckan file, these should never be copied to GameData
-                    .Where(instF => !IsInternalCkan(instF.source))
-                    // Check whether each file matches any installation filter
-                    .ToGroupedDictionary(instF => filters.Any(filt => instF.destination != null
-                                                                      && instF.destination.Contains(filt)));
-                var files = groups.GetValueOrDefault(false) ?? Array.Empty<InstallableFile>();
-                filteredCount = groups.GetValueOrDefault(true)?.Length ?? 0;
+                // Skip the file if it's a ckan file, these should never be copied to GameData
+                // Check whether each file matches any installation filter
+                var installable = GetInstallableFiles(module, archive, instance.Game, false, filters);
+                var groups = installable.files;
+                var files = groups.SelectMany(grp => grp).ToArray();
+                filteredCount = installable.filteredCount;
+
                 try
                 {
                     if (registry.DllPath(module.identifier)
@@ -376,7 +381,7 @@ namespace CKAN.IO
                         // Find where we're installing identifier.optionalversion.dll
                         // (file name might not be an exact match with manually installed)
                         var dllFolders = files
-                            .Select(f => instance.ToRelativeGameDir(f.destination))
+                            .Select(f => f.relDest)
                             .Where(relPath => instance.DllPathToIdentifier(relPath) == module.identifier)
                             .Select(Path.GetDirectoryName)
                             .ToHashSet();
@@ -403,12 +408,12 @@ namespace CKAN.IO
                     // Look for overwritable files if session is interactive
                     if (!User.Headless)
                     {
-                        if (FindConflictingFiles(zipfile, files, registry).ToArray()
+                        if (FindConflictingFiles(files, registry).ToArray()
                             is (InstallableFile file, bool same)[] { Length: > 0 } conflicting)
                         {
                             var fileMsg = string.Join(Environment.NewLine,
                                                       conflicting.OrderBy(tuple => tuple.same)
-                                                                 .Select(tuple => $"- {instance.ToRelativeGameDir(tuple.file.destination)}  ({(tuple.same ? Properties.Resources.ModuleInstallerFileSame : Properties.Resources.ModuleInstallerFileDifferent)})"));
+                                                                 .Select(tuple => $"- {tuple.file.relDest}  ({(tuple.same ? Properties.Resources.ModuleInstallerFileSame : Properties.Resources.ModuleInstallerFileDifferent)})"));
                             if (User.RaiseYesNoDialog(string.Format(Properties.Resources.ModuleInstallerOverwrite,
                                                                     module.name, fileMsg)))
                             {
@@ -423,25 +428,31 @@ namespace CKAN.IO
                     }
                     long installedBytes = 0;
                     var fileProgress = new ProgressImmediate<long>(bytes => moduleProgress?.Report(installedBytes + bytes));
-                    foreach (InstallableFile file in files)
+
+                    foreach (var entry in archive.Entries)
                     {
-                        if (cancelToken.IsCancellationRequested)
+                        if (entry.Key is string pathInZip)
                         {
-                            throw new CancelledActionKraken();
-                        }
-                        log.DebugFormat("Copying {0}", file.source.Name);
-                        var path = InstallFile(zipfile, file.source, file.destination, file.makedir,
-                                               candidateDuplicates?.GetValueOrDefault((relPath: instance.ToRelativeGameDir(file.destination),
-                                                                                       size:    file.source.Size))
-                                                                  ?? Array.Empty<string>(),
-                                               fileProgress);
-                        installedBytes += file.source.Size;
-                        if (path != null)
-                        {
-                            createdPaths.Add(path);
-                            if (file.source.IsDirectory && possibleConfigOnlyDirs != null)
+                            foreach (var file in groups[CKANPathUtils.NormalizePath(entry.Key)])
                             {
-                                possibleConfigOnlyDirs.Remove(file.destination);
+                                if (cancelToken.IsCancellationRequested)
+                                {
+                                    throw new CancelledActionKraken();
+                                }
+                                log.DebugFormat("Copying {0}", file.relDest);
+                                var path = InstallFile(entry, instance.ToAbsoluteGameDir(file.relDest), file.makedir,
+                                                       candidateDuplicates?.GetValueOrDefault((relPath: file.relDest, file.size))
+                                                                          ?? Array.Empty<string>(),
+                                                       fileProgress);
+                                installedBytes += file.size;
+                                if (path != null)
+                                {
+                                    createdPaths.Add(path);
+                                    if (file.isDir && possibleConfigOnlyDirs != null)
+                                    {
+                                        possibleConfigOnlyDirs.Remove(instance.ToAbsoluteGameDir(file.relDest));
+                                    }
+                                }
                             }
                         }
                     }
@@ -459,37 +470,33 @@ namespace CKAN.IO
             }
         }
 
-        public static bool IsInternalCkan(ZipEntry ze)
-            => ze.Name.EndsWith(".ckan", StringComparison.OrdinalIgnoreCase);
-
         #region File overwrites
 
         /// <summary>
         /// Find files in the given list that are already installed and unowned.
         /// Note, this compares files on demand; Memoize for performance!
         /// </summary>
-        /// <param name="zip">Zip file that we are installing from</param>
         /// <param name="files">Files that we want to install for a module</param>
         /// <param name="registry">Registry to check for file ownership</param>
         /// <returns>
         /// List of pairs: Key = file, Value = true if identical, false if different
         /// </returns>
-        private IEnumerable<(InstallableFile file, bool same)> FindConflictingFiles(ZipFile                      zip,
-                                                                                    IEnumerable<InstallableFile> files,
+        private IEnumerable<(InstallableFile file, bool same)> FindConflictingFiles(IEnumerable<InstallableFile> files,
                                                                                     Registry                     registry)
-            => files.Where(file => !file.source.IsDirectory
-                                   && File.Exists(file.destination)
-                                   && registry.FileOwner(instance.ToRelativeGameDir(file.destination)) == null)
+            => files.Where(file => !file.isDir
+                                   && File.Exists(instance.ToAbsoluteGameDir(file.relDest))
+                                   && registry.FileOwner(file.relDest) == null)
                     .Select(file =>
                     {
-                        log.DebugFormat("Comparing {0}", file.destination);
-                        using (Stream     zipStream = zip.GetInputStream(file.source))
-                        using (FileStream curFile   = new FileStream(file.destination,
+                        var absDest = instance.ToAbsoluteGameDir(file.relDest);
+                        log.DebugFormat("Comparing {0}", absDest);
+                        using (Stream     zipStream = file.entry.OpenEntryStream())
+                        using (FileStream curFile   = new FileStream(absDest,
                                                                      FileMode.Open,
                                                                      FileAccess.Read))
                         {
                             return (file,
-                                    same: file.source.Size == curFile.Length
+                                    same: file.size == curFile.Length
                                           && StreamsEqual(zipStream, curFile));
                         }
                     });
@@ -543,13 +550,13 @@ namespace CKAN.IO
         /// fails at a later stage.
         /// </summary>
         /// <param name="files">The files to overwrite</param>
-        private static void DeleteConflictingFiles(IEnumerable<InstallableFile> files)
+        private void DeleteConflictingFiles(IEnumerable<InstallableFile> files)
         {
             TxFileManager file_transaction = new TxFileManager();
-            foreach (InstallableFile file in files)
+            foreach (var absPath in files.Select(f => instance.ToRelativeGameDir(f.relDest)))
             {
-                log.DebugFormat("Trying to delete {0}", file.destination);
-                file_transaction.Delete(file.destination);
+                log.DebugFormat("Trying to delete {0}", absPath);
+                file_transaction.Delete(absPath);
             }
         }
 
@@ -558,82 +565,56 @@ namespace CKAN.IO
         #region Find files
 
         /// <summary>
-        /// Given a module and an open zipfile, return all the files that would be installed
-        /// for this module.
-        ///
-        /// If a KSP instance is provided, it will be used to generate output paths, otherwise these will be null.
-        ///
-        /// Throws a BadMetadataKraken if the stanza resulted in no files being returned.
+        /// Analyze a module, an archive stream, and a game to find the files that should be installed.
+        /// Note that the returned destination paths are _relative, so GameInstance.ToRelativeGameDir
+        /// still needs to be called to get the full destination path.
         /// </summary>
-
-        public static List<InstallableFile> FindInstallableFiles(CkanModule    module,
-                                                                 ZipFile       zipfile,
-                                                                 GameInstance  inst)
-            => FindInstallableFiles(module, zipfile, inst, inst.Game);
-
-        public static List<InstallableFile> FindInstallableFiles(CkanModule module,
-                                                                 ZipFile    zipfile,
-                                                                 IGame      game)
-            => FindInstallableFiles(module, zipfile, null, game);
-
-        private static List<InstallableFile> FindInstallableFiles(CkanModule    module,
-                                                                  ZipFile       zipfile,
-                                                                  GameInstance? inst,
-                                                                  IGame         game)
+        /// <param name="module">The module to install</param>
+        /// <param name="archive">The archive file stream to search</param>
+        /// <param name="game">The game for the module</param>
+        /// <param name="withInternalCkans">Set to false to exclude internal .ckan files</param>
+        /// <param name="filters">Installation filters to enforce</param>
+        /// <returns>Mapping from pathInZip to relative paths under GameRoot</returns>
+        public static (ILookup<string, InstallableFile> files, int filteredCount) GetInstallableFiles(
+                CkanModule       module,
+                IArchive         archive,
+                IGame            game,
+                bool             withInternalCkans = true,
+                HashSet<string>? filters = null)
         {
-            try
+            // Should this be cached? It should only ever be called with a ZIP that matches the module's hashes.
+            int filteredCount = 0;
+            var stanzas     = module.GetInstallStanzas(game);
+            var stanzaFiles = archive.Entries
+                                     .Select(e => stanzas.Select(stanza =>
+                                         stanza.TryGetInstallableFile(e.Key?.Replace('\\', '/') ?? "", e,
+                                                                      game, e.IsDirectory, e.Size,
+                                                                      withInternalCkans, filters, ref filteredCount,
+                                                                      out var tuple)
+                                             ? ((ModuleInstallDescriptor stanza, (string pathInZip, InstallableFile instF) tuple)?)
+                                               (stanza, tuple)
+                                             : null))
+                                    .SelectMany(files => files)
+                                    .OfType<(ModuleInstallDescriptor stanza, (string pathInZip, InstallableFile instF) tuple)>()
+                                    .ToLookup(tuple => tuple.stanza,
+                                              tuple => tuple.tuple);
+            var used = stanzaFiles.Select(grp => grp.Key)
+                                  .ToHashSet();
+            if (stanzas.Except(used).ToArray() is { Length: > 0 } unused)
             {
-                // Use the provided stanzas, or use the default install stanza if they're absent.
-                return module.install is { Length: > 0 }
-                    ? module.install
-                            .SelectMany(stanza => stanza.FindInstallableFiles(zipfile, inst))
-                            .ToList()
-                    : ModuleInstallDescriptor.DefaultInstallStanza(game,
-                                                                   module.identifier)
-                                             .FindInstallableFiles(zipfile, inst);
+                throw new BadMetadataKraken(module,
+                                            string.Format(Properties.Resources.ModuleInstallDescriptorNoFilesFound,
+                                                          string.Join(", ",
+                                                                      unused.Select(stanza => stanza.DescribeMatch()))));
             }
-            catch (BadMetadataKraken kraken)
-            {
-                // Decorate our kraken with the current module, as the lower-level
-                // methods won't know it.
-                kraken.module ??= module;
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Given a module and a path to a zipfile, returns all the files that would be installed
-        /// from that zip for this module.
-        ///
-        /// This *will* throw an exception if the file does not exist.
-        ///
-        /// Throws a BadMetadataKraken if the stanza resulted in no files being returned.
-        ///
-        /// If a KSP instance is provided, it will be used to generate output paths, otherwise these will be null.
-        /// </summary>
-        // TODO: Document which exception!
-        public static List<InstallableFile> FindInstallableFiles(CkanModule  module,
-                                                                 string      zip_filename,
-                                                                 IGame       game)
-        {
-            // `using` makes sure our zipfile gets closed when we exit this block.
-            using (ZipFile zipfile = new ZipFile(zip_filename))
-            {
-                log.DebugFormat("Searching {0} using {1} as module", zip_filename, module);
-                return FindInstallableFiles(module, zipfile, null, game);
-            }
-        }
-
-        public static List<InstallableFile> FindInstallableFiles(CkanModule   module,
-                                                                 string       zip_filename,
-                                                                 GameInstance inst)
-        {
-            // `using` makes sure our zipfile gets closed when we exit this block.
-            using (ZipFile zipfile = new ZipFile(zip_filename))
-            {
-                log.DebugFormat("Searching {0} using {1} as module", zip_filename, module);
-                return FindInstallableFiles(module, zipfile, inst);
-            }
+            // TODO: I think it's a mistake to apply/count the filters before the length checks
+            return (files: stanzaFiles.SelectMany(grp => grp.GroupBy(tuple => grp.Key.MatchLength(tuple.pathInZip)
+                                                                              ?? long.MaxValue)
+                                                            .MinBy(grp => grp.Key)
+                                                            ?? Enumerable.Empty<(string pathInZip, InstallableFile instF)>())
+                                      .ToLookup(tuple => tuple.pathInZip,
+                                                tuple => tuple.instF),
+                    filteredCount);
         }
 
         /// <summary>
@@ -652,10 +633,10 @@ namespace CKAN.IO
                                  filters);
 
         private static IEnumerable<(string path, bool dir, bool exists)> GetModuleContents(
-                GameInstance                instance,
-                IReadOnlyCollection<string> installed,
-                HashSet<string>             parents,
-                HashSet<string>             filters)
+                GameInstance        instance,
+                IEnumerable<string> installed,
+                HashSet<string>     parents,
+                HashSet<string>     filters)
             => installed.Where(f => !filters.Any(filt => f.Contains(filt)))
                         .GroupBy(parents.Contains)
                         .SelectMany(grp =>
@@ -677,21 +658,19 @@ namespace CKAN.IO
                 HashSet<string> filters)
             => (Cache.GetCachedFilename(module) is string filename
                     ? GetModuleContents(instance,
-                                        Utilities.DefaultIfThrows(
-                                            () => FindInstallableFiles(module, filename, instance)),
+                                        GetInstallableFiles(module, ArchiveFactory.Open(filename), instance.Game)
+                                            .files.SelectMany(grp => grp.Select(instF => instF.relDest))
+                                            .ToArray(),
                                         filters)
-                    : null)
-               ?? Enumerable.Empty<(string path, bool dir, bool exists)>();
+                    : Enumerable.Empty<(string path, bool dir, bool exists)>());
 
-        private static IEnumerable<(string path, bool dir, bool exists)>? GetModuleContents(
-                GameInstance                  instance,
-                IEnumerable<InstallableFile>? installable,
-                HashSet<string>               filters)
-            => installable?.Where(instF => !filters.Any(filt => instF.destination != null
-                                                                && instF.destination.Contains(filt)))
-                           .Select(f => (path:   instance.ToRelativeGameDir(f.destination),
-                                         dir:    f.source.IsDirectory,
-                                         exists: true));
+        // private static IEnumerable<(string path, bool dir, bool exists)>? GetModuleContents(
+        //         IEnumerable<InstallableFile>? installable,
+        //         HashSet<string>               filters)
+        //     => installable?.Where(instF => !filters.Any(filt => instF.relDest.Contains(filt)))
+        //                    .Select(f => (path:   f.relDest,
+        //                                  dir:    f.isDir,
+        //                                  exists: true));
 
         #endregion
 
@@ -703,12 +682,11 @@ namespace CKAN.IO
         /// May differ from the input fullPath!
         /// Throws a FileExistsKraken if we were going to overwrite the file.
         /// </returns>
-        internal static string? InstallFile(ZipFile          zipfile,
-                                            ZipEntry         entry,
-                                            string           fullPath,
-                                            bool             makeDirs,
-                                            string[]         candidateDuplicates,
-                                            IProgress<long>? progress)
+        internal static string? InstallFile(IArchiveEntry   entry,
+                                            string          fullPath,
+                                            bool            makeDirs,
+                                            string[]        candidateDuplicates,
+                                            IProgress<long> progress)
         {
             var file_transaction = new TxFileManager();
 
@@ -768,19 +746,16 @@ namespace CKAN.IO
                 try
                 {
                     // It's a file! Prepare the streams
-                    using (var zipStream = zipfile.GetInputStream(entry))
-                    using (var writer = File.Create(fullPath))
+                    using (var zipStream = entry.OpenEntryStream())
+                    using (var writer    = File.Create(fullPath))
                     {
                         // Windows silently changes paths ending with spaces, get the name it actually used
                         fullPath = CKANPathUtils.NormalizePath(writer.Name);
                         // 4k is the block size on practically every disk and OS.
                         byte[] buffer = new byte[4096];
-                        progress?.Report(0);
-                        StreamUtils.Copy(zipStream, writer, buffer,
-                                         // This doesn't fire at all if the interval never elapses
-                                         (sender, e) => progress?.Report(e.Processed),
-                                         UnzipProgressInterval,
-                                         entry, "InstallFile");
+                        progress.Report(0);
+                        // entry.WriteToFile(fullPath);
+                        zipStream.CopyTo(writer, progress, UnzipProgressInterval);
                     }
                 }
                 catch (DirectoryNotFoundException ex)

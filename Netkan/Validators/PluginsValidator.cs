@@ -1,70 +1,64 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
-using ICSharpCode.SharpZipLib.Zip;
+
+using SharpCompress.Common;
 using log4net;
 
-using CKAN.NetKAN.Services;
-using CKAN.NetKAN.Model;
+using CKAN.IO;
 using CKAN.Games;
+using CKAN.NetKAN.Model;
 
 namespace CKAN.NetKAN.Validators
 {
-    internal sealed class PluginsValidator : IValidator
+    internal sealed class PluginsValidator : IContentValidator
     {
-        public PluginsValidator(IHttpService http, IModuleService moduleService, IGame game)
+        public PluginsValidator(IGame game)
         {
-            _http          = http;
-            _moduleService = moduleService;
-            _game          = game;
+            _game = game;
         }
 
-        public void Validate(Metadata metadata)
+        public void VisitContainedFile(Metadata                             metadata,
+                                       CkanModule                           module,
+                                       IEntry                               entry,
+                                       IReadOnlyCollection<InstallableFile> installsAs,
+                                       Func<string>                         getContents)
         {
-            Log.Debug("Validating that metadata is appropriate for DLLs");
+            plugins.UnionWith(installsAs.Select(i => i.relDest)
+                                        .Where(p => p.EndsWith(".dll", StringComparison.InvariantCultureIgnoreCase)));
+            sourceCode.UnionWith(installsAs.Select(i => i.relDest)
+                                           .Where(p => sourceCodeSuffixes.Any(suf => p.EndsWith(suf, StringComparison.InvariantCultureIgnoreCase))));
+        }
 
-            var json = metadata.AllJson;
-            var mod  = CkanModule.FromJson(json.ToString());
-            if (!mod.IsDLC)
+        public void Validate(Metadata metadata, CkanModule module)
+        {
+            log.Debug("Validating that metadata is appropriate for DLLs");
+            if (plugins.Count > 0)
             {
-                var package = _http.DownloadModule(metadata);
-                if (!string.IsNullOrEmpty(package))
+                if (plugins.Select(pl => GameInstance.DllPathToIdentifier(_game, pl))
+                           .OfType<string>()
+                           .Where(ident => ident is { Length: > 0 }
+                                           && !identifiersToIgnore.Contains(ident))
+                           .ToHashSet()
+                    is { Count: > 0 } dllIdentifiers
+                    && !dllIdentifiers.Contains(metadata.Identifier))
                 {
-                    var zip  = new ZipFile(package);
-
-                    if (_moduleService.GetPlugins(mod, zip)
-                                      .Select(f => f.destination)
-                                      .Order()
-                                      .ToArray()
-                        is { Length: > 0 } plugins)
-                    {
-                        if (plugins.Select(pl => GameInstance.DllPathToIdentifier(_game, pl))
-                                   .OfType<string>()
-                                   .Where(ident => ident is { Length: > 0 }
-                                                   && !identifiersToIgnore.Contains(ident))
-                                   .ToHashSet()
-                            is { Count: > 0 } dllIdentifiers
-                            && !dllIdentifiers.Contains(metadata.Identifier))
-                        {
-                            Log.WarnFormat("No plugin matching the identifier, manual installations won't be detected: {0}",
-                                           string.Join(", ", plugins));
-                        }
-
-                        bool boundedCompatibility = json.ContainsKey("ksp_version")
-                                                    || json.ContainsKey("ksp_version_max");
-                        if (!boundedCompatibility)
-                        {
-                            Log.Warn("Unbounded future compatibility for module with a plugin, consider setting $vref or ksp_version or ksp_version_max");
-                        }
-                    }
-                    else if (_moduleService.GetSourceCode(mod, zip)
-                                           .Select(f => f.destination)
-                                           .Order()
-                                           .ToArray()
-                             is { Length: > 0 } sourceCode)
-                    {
-                        Log.WarnFormat("Found C# source code without DLL, mod may not have been compiled: {0}",
-                                       string.Join(", ", sourceCode));
-                    }
+                    log.WarnFormat("No plugin matching the identifier, manual installations won't be detected: {0}",
+                                   string.Join(", ", plugins));
                 }
+
+                var json = metadata.AllJson;
+                bool boundedCompatibility = json.ContainsKey("ksp_version")
+                                            || json.ContainsKey("ksp_version_max");
+                if (!boundedCompatibility)
+                {
+                    log.Warn("Unbounded future compatibility for module with a plugin, consider setting $vref or ksp_version or ksp_version_max");
+                }
+            }
+            else if (sourceCode.Count > 0)
+            {
+                log.WarnFormat("Found C# source code without DLL, mod may not have been compiled: {0}",
+                               string.Join(", ", sourceCode));
             }
         }
 
@@ -79,10 +73,13 @@ namespace CKAN.NetKAN.Validators
             "MiniAVC"
         };
 
-        private readonly IHttpService   _http;
-        private readonly IModuleService _moduleService;
-        private readonly IGame          _game;
+        private readonly IGame _game;
 
-        private static readonly ILog Log = LogManager.GetLogger(typeof(PluginsValidator));
+        private readonly HashSet<string> plugins    = new HashSet<string>();
+        private readonly HashSet<string> sourceCode = new HashSet<string>();
+
+        private static readonly string[] sourceCodeSuffixes = new string[] { ".cs", ".csproj", ".sln" };
+
+        private static readonly ILog log = LogManager.GetLogger(typeof(PluginsValidator));
     }
 }

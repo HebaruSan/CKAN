@@ -1,48 +1,46 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+
+using SharpCompress.Common;
+using Newtonsoft.Json.Linq;
 using log4net;
 
+using CKAN.Extensions;
+using CKAN.Versioning;
 using CKAN.NetKAN.Extensions;
 using CKAN.NetKAN.Model;
-using CKAN.NetKAN.Services;
-using CKAN.Versioning;
 
 namespace CKAN.NetKAN.Transformers
 {
     /// <summary>
     /// An <see cref="ITransformer"/> that populates data from a CKAN file included in the distribution package.
     /// </summary>
-    internal sealed class InternalCkanTransformer : ITransformer
+    internal sealed class InternalCkanTransformer : IContentTransformer
     {
-        private static readonly ILog Log = LogManager.GetLogger(typeof(InternalCkanTransformer));
-
-        private readonly IHttpService _http;
-        private readonly IModuleService _moduleService;
-
         public string Name => "internal_ckan";
 
-        public InternalCkanTransformer(IHttpService http, IModuleService moduleService)
+        public void VisitContainedFile(Metadata     metadata,
+                                       CkanModule   mod,
+                                       IEntry       entry,
+                                       bool         installing,
+                                       Func<string> getContents)
         {
-            _http = http;
-            _moduleService = moduleService;
+            if (installing
+                && ModuleInstallDescriptor.IsInternalCkan(entry.Key ?? ""))
+            {
+                internalJsons.AddRange(YamlExtensions.Parse(getContents())
+                                                     .Select(yaml => yaml.ToJObject()));
+            }
         }
 
-        public IEnumerable<Metadata> Transform(Metadata metadata, TransformOptions opts)
+        public Metadata Transform(Metadata metadata)
         {
-            if (metadata.Download != null
-                && _http.DownloadModule(metadata) is string contents)
+            if (internalJsons.Count > 0)
             {
-
-                // We run before the AVC transformer, which sets "version" for Jenkins.
-                // Set it to a default if missing so CkanModule can initialize.
-                var moduleJson = metadata.Json();
-                moduleJson.SafeAdd("version", "1");
-                CkanModule   mod  = CkanModule.FromJson(moduleJson.ToString());
-                var internalJson = _moduleService.GetInternalCkan(mod, contents);
-
-                if (internalJson != null)
+                var json = metadata.Json();
+                foreach (var internalJson in internalJsons)
                 {
-                    var json = metadata.Json();
                     Log.InfoFormat("Executing internal CKAN transformation with {0}", metadata.Kref);
                     Log.DebugFormat("Input metadata:{0}{1}", Environment.NewLine, metadata.AllJson);
 
@@ -60,12 +58,15 @@ namespace CKAN.NetKAN.Transformers
                     GameVersion.SetJsonCompatibility(json, null, null, null);
                     json.SafeMerge("resources", internalJson["resources"]);
 
-                    Log.DebugFormat("Transformed metadata:{0}{1}", Environment.NewLine, json);
-                    yield return new Metadata(json);
-                    yield break;
                 }
+                Log.DebugFormat("Transformed metadata:{0}{1}", Environment.NewLine, json);
+                return new Metadata(json);
             }
-            yield return metadata;
+            return metadata;
         }
+
+        private readonly List<JObject> internalJsons = new List<JObject>();
+
+        private static readonly ILog Log = LogManager.GetLogger(typeof(InternalCkanTransformer));
     }
 }

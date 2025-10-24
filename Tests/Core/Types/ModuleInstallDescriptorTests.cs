@@ -1,11 +1,14 @@
 using System.IO;
 using System.Linq;
 
-using NUnit.Framework;
+using SharpCompress.Common;
+using SharpCompress.Archives;
+using SharpCompress.Writers;
 using Newtonsoft.Json;
-using ICSharpCode.SharpZipLib.Zip;
+using NUnit.Framework;
 
 using CKAN;
+using CKAN.IO;
 using CKAN.Games.KerbalSpaceProgram;
 using Tests.Data;
 
@@ -82,12 +85,11 @@ namespace Tests.Core.Types
         public void AllowsInstallsToShipsDirectories(string directory)
         {
             // Arrange
-            using (var zip = ZipFile.Create(new MemoryStream()))
+            using (var stream = new MemoryStream())
+            using (var writer = WriterFactory.Open(stream, ArchiveType.Zip,
+                                                   new WriterOptions(CompressionType.Deflate)))
             {
-                zip.BeginUpdate();
-                zip.AddDirectory("ExampleShips");
-                zip.Add(new ZipEntry("ExampleShips/AwesomeShip.craft") { Size = 0, CompressedSize = 0 });
-                zip.CommitUpdate();
+                writer.Write("ExampleShips/AwesomeShip.craft", "");
 
                 var mod = CkanModule.FromJson(string.Format(
                     @"{{
@@ -106,18 +108,28 @@ namespace Tests.Core.Types
                     directory));
 
                 using (var inst = new DisposableKSP())
+                using (var archive = ArchiveFactory.Open(stream))
                 {
                     // Act
-                    var results = mod.install!.SelectMany(i => i.FindInstallableFiles(zip, inst.KSP))
-                                              .ToArray();
+                    int filterCount = 0;
+                    var results = archive.Entries.SelectMany(entry =>
+                                          mod.install!
+                                             .Select(i => i.TryGetInstallableFile(entry.Key!,
+                                                                                  entry, inst.KSP.Game,
+                                                                                  entry.IsDirectory, entry.Size,
+                                                                                  true, null, ref filterCount,
+                                                                                  out (string pathInZip, InstallableFile installableFile)? val)
+                                                              ? val : null)
+                                             .OfType<(string pathInZip, InstallableFile installableFile)>())
+                                         .ToArray();
 
                     // Assert
                     CollectionAssert.AreEquivalent(
                         new string[]
                         {
-                            inst.KSP.ToAbsoluteGameDir($"{directory}/AwesomeShip.craft"),
+                            $"{directory}/AwesomeShip.craft",
                         },
-                        results.Select(f => f.destination));
+                        results.Select(f => f.installableFile.relDest));
                 }
             }
         }
@@ -129,13 +141,10 @@ namespace Tests.Core.Types
         {
             // Arrange
             // Bogus zip with example to install.
-            using (var zip = ZipFile.Create(new MemoryStream()))
+            using (var stream = new MemoryStream())
+            using (var writer = WriterFactory.Open(stream, ArchiveType.Zip, new WriterOptions(CompressionType.Deflate)))
             {
-                zip.BeginUpdate();
-                zip.AddDirectory("saves");
-                zip.AddDirectory("saves/scenarios");
-                zip.Add(new ZipEntry("saves/scenarios/AwesomeRace.sfs") { Size = 0, CompressedSize = 0 });
-                zip.CommitUpdate();
+                writer.Write("saves/scenarios/AwesomeRace.sfs", "");
 
                 var mod = CkanModule.FromJson(@"
                     {
@@ -153,18 +162,28 @@ namespace Tests.Core.Types
                     }");
 
                 using (var inst = new DisposableKSP())
+                using (var archive = ArchiveFactory.Open(stream))
                 {
+                    int filterCount = 0;
                     // Act
-                    var results = mod.install!.SelectMany(i => i.FindInstallableFiles(zip, inst.KSP))
-                                              .ToArray();
+                    var results = archive.Entries.SelectMany(entry =>
+                                          mod.install!
+                                             .Select(i => i.TryGetInstallableFile(entry.Key!,
+                                                                                  entry, inst.KSP.Game,
+                                                                                  entry.IsDirectory, entry.Size,
+                                                                                  true, null, ref filterCount,
+                                                                                  out (string pathInZip, InstallableFile installableFile)? val)
+                                                              ? val : null)
+                                             .OfType<(string pathInZip, InstallableFile installableFile)>())
+                                         .ToArray();
 
                     // Assert
                     CollectionAssert.AreEquivalent(
                         new string[]
                         {
-                            inst.KSP.ToAbsoluteGameDir("saves/scenarios/AwesomeRace.sfs"),
+                            "saves/scenarios/AwesomeRace.sfs",
                         },
-                        results.Select(f => f.destination));
+                        results.Select(f => f.installableFile.relDest));
                 }
             }
         }

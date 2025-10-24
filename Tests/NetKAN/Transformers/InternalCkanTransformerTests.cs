@@ -1,12 +1,7 @@
-using System.Linq;
-
-using Moq;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
-using CKAN;
 using CKAN.NetKAN.Model;
-using CKAN.NetKAN.Services;
 using CKAN.NetKAN.Transformers;
 
 namespace Tests.NetKAN.Transformers
@@ -14,29 +9,17 @@ namespace Tests.NetKAN.Transformers
     [TestFixture]
     public sealed class InternalCkanTransformerTests
     {
-        private readonly TransformOptions opts = new TransformOptions(1, null, null, null, false, null);
-
         [Test]
         public void AddsMissingProperties()
         {
             // Arrange
-            const string filePath = "/DoesNotExist.zip";
+            // const string filePath = "/DoesNotExist.zip";
 
             var internalCkan = new JObject();
             internalCkan["spec_version"] = 1;
             internalCkan["foo"] = "bar";
 
-            var mHttp = new Mock<IHttpService>();
-            var mModuleService = new Mock<IModuleService>();
-
-            mHttp.Setup(i => i.DownloadModule(It.IsAny<Metadata>()))
-                .Returns(filePath);
-
-            mModuleService.Setup(i => i.GetInternalCkan(
-                    It.IsAny<CkanModule>(), It.IsAny<string>()))
-                .Returns(internalCkan);
-
-            var sut = new InternalCkanTransformer(mHttp.Object, mModuleService.Object);
+            var sut = new InternalCkanTransformer();
 
             var json = new JObject();
             json["spec_version"] = 1;
@@ -46,7 +29,7 @@ namespace Tests.NetKAN.Transformers
             json["download"] = "https://awesomemod.example/AwesomeMod.zip";
 
             // Act
-            var result = sut.Transform(new Metadata(json), opts).First();
+            var result = sut.Transform(new Metadata(json));
             var transformedJson = result.Json();
 
             // Assert
@@ -59,23 +42,13 @@ namespace Tests.NetKAN.Transformers
         public void DoesNotOverrideExistingProperties()
         {
             // Arrange
-            const string filePath = "/DoesNotExist.zip";
+            // const string filePath = "/DoesNotExist.zip";
 
             var internalCkan = new JObject();
             internalCkan["spec_version"] = 1;
             internalCkan["foo"] = "bar";
 
-            var mHttp = new Mock<IHttpService>();
-            var mModuleService = new Mock<IModuleService>();
-
-            mHttp.Setup(i => i.DownloadModule(It.IsAny<Metadata>()))
-                .Returns(filePath);
-
-            mModuleService.Setup(i => i.GetInternalCkan(
-                    It.IsAny<CkanModule>(), It.IsAny<string>()))
-                .Returns(internalCkan);
-
-            var sut = new InternalCkanTransformer(mHttp.Object, mModuleService.Object);
+            var sut = new InternalCkanTransformer();
 
             var json = new JObject();
             json["spec_version"] = 1;
@@ -86,7 +59,7 @@ namespace Tests.NetKAN.Transformers
             json["download"] = "https://awesomemod.example/AwesomeMod.zip";
 
             // Act
-            var result = sut.Transform(new Metadata(json), opts).First();
+            var result = sut.Transform(new Metadata(json));
             var transformedJson = result.Json();
 
             // Assert

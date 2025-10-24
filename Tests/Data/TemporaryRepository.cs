@@ -2,8 +2,8 @@ using System;
 using System.IO;
 using System.Text;
 
-using ICSharpCode.SharpZipLib.GZip;
-using ICSharpCode.SharpZipLib.Tar;
+using SharpCompress.Writers;
+using SharpCompress.Common;
 
 using CKAN;
 
@@ -22,20 +22,17 @@ namespace Tests.Data
             repo = new Repository("temp", path, priority);
 
             using (var outputStream = File.OpenWrite(path))
-            using (var gzipStream   = new GZipOutputStream(outputStream))
-            using (var tarStream    = new TarOutputStream(gzipStream, Encoding.UTF8))
+            using (var writer       = WriterFactory.Open(outputStream, ArchiveType.Tar,
+                                                         new WriterOptions(CompressionType.GZip)
+                                                         {
+                                                             LeaveStreamOpen = true
+                                                         }))
             {
                 int i = 0;
                 foreach (var contents in fileContents)
                 {
-                    var entry = TarEntry.CreateTarEntry($"{++i}.ckan");
-                    entry.Size = contents.Length;
-                    byte[] buffer = new byte[contents.Length];
-                    tarStream.PutNextEntry(entry);
-                    tarStream.Write(Encoding.UTF8.GetBytes(contents), 0, contents.Length);
-                    tarStream.CloseEntry();
+                    writer.Write($"{++i}.ckan", new MemoryStream(Encoding.UTF8.GetBytes(contents)) { Position = 0 });
                 }
-                tarStream.Finish();
             }
         }
 

@@ -1,87 +1,108 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
+using SharpCompress.Common;
 using log4net;
 
-using CKAN.NetKAN.Model;
-using CKAN.NetKAN.Services;
-using CKAN.Extensions;
+using CKAN.IO;
 using CKAN.Games;
+using CKAN.NetKAN.Model;
 
 namespace CKAN.NetKAN.Validators
 {
-    internal sealed class InstallsFilesValidator : IValidator
+    internal sealed class InstallsFilesValidator : IContentValidator
     {
-        private readonly IHttpService _http;
-        private readonly IModuleService _moduleService;
-        private readonly IGame _game;
-
-        public InstallsFilesValidator(IHttpService http, IModuleService moduleService, IGame game)
+        public InstallsFilesValidator(IGame game, CkanModule module)
         {
-            _http = http;
-            _moduleService = moduleService;
-            _game = game;
+            _game   = game;
+            modDirs = Enumerable.Repeat(game.PrimaryModDirectoryRelative, 1)
+                                .Concat(game.AlternateModDirectoriesRelative)
+                                .ToHashSet();
+
+            unmatchedIncludeOnlys = (module.install
+                                           ?? Enumerable.Empty<ModuleInstallDescriptor>())
+                                           .SelectMany(stanza => stanza.include_only
+                                                                 ?? Enumerable.Empty<string>())
+                                           .Distinct()
+                                           .ToHashSet();
         }
 
-        public void Validate(Metadata metadata)
+        public void VisitContainedFile(Metadata                             metadata,
+                                       CkanModule                           module,
+                                       IEntry                               entry,
+                                       IReadOnlyCollection<InstallableFile> installsAs,
+                                       Func<string>                         getContents)
         {
-            var mod = CkanModule.FromJson(metadata.AllJson.ToString());
-            if (!mod.IsDLC && _http.DownloadModule(metadata) is string file)
+            if (installsAs.Count > 0)
             {
-                // Make sure this would actually generate an install.
-                if (!_moduleService.HasInstallableFiles(mod, file))
-                {
-                    throw new Kraken(string.Format(
-                        "Module contains no files matching: {0}",
-                        mod.DescribeInstallStanzas(_game)));
-                }
+                hasInstallable = true;
+            }
 
-                // Get the files the module will install
-                var allFiles = _moduleService.FileDestinations(mod, file).Memoize();
+            var dests = installsAs.Select(f => f.relDest).ToHashSet();
 
-                // Make sure no paths include GameData other than at the start
-                foreach (var dir in Enumerable.Repeat(_game.PrimaryModDirectoryRelative, 1)
-                                              .Concat(_game.AlternateModDirectoriesRelative))
-                {
-                    var gamedatas = allFiles
-                        .Where(p => p.StartsWith(dir, StringComparison.InvariantCultureIgnoreCase)
-                                    && p.LastIndexOf($"/{dir}/", StringComparison.InvariantCultureIgnoreCase) > 0)
-                        .Order()
-                        .ToList();
-                    if (gamedatas.Count != 0)
-                    {
-                        var badPaths = string.Join(Environment.NewLine, gamedatas);
-                        throw new Kraken($"{dir} directory found within {dir}:{Environment.NewLine}{badPaths}");
-                    }
-                }
+            // GameData within GameData
+            gamedatas.UnionWith(
+                dests.SelectMany(p => modDirs.Where(dir => p.StartsWith(dir, StringComparison.InvariantCultureIgnoreCase)
+                                                           && p.LastIndexOf($"/{dir}/", StringComparison.InvariantCultureIgnoreCase) > 0)
+                                             .Select(dir => (p, dir))));
 
-                // Make sure we won't try to overwrite our own files
-                var duplicates = allFiles.GroupBy(f => f)
-                                         .SelectMany(grp => grp.Skip(1).Order())
-                                         .ToList();
-                if (duplicates.Count != 0)
-                {
-                    var badPaths = string.Join(Environment.NewLine, duplicates);
-                    throw new Kraken($"Multiple files attempted to install to:{Environment.NewLine}{badPaths}");
-                }
+            // Self-overwrites
+            overwrites.UnionWith(relDests.Intersect(dests));
+            relDests.UnionWith(dests);
 
-                // Not a perfect check (subject to false negatives)
-                // but better than nothing
-                if (mod.install != null)
-                {
-                    var unmatchedIncludeOnlys = mod.install
-                        .SelectMany(stanza => stanza.include_only ?? Enumerable.Empty<string>())
-                        .Distinct()
-                        .Where(incl => !allFiles.Any(f => f.Contains(incl)))
-                        .ToList();
-                    if (unmatchedIncludeOnlys.Count != 0)
-                    {
-                        log.WarnFormat("No matches for include_only: {0}",
-                                       string.Join(", ", unmatchedIncludeOnlys));
-                    }
-                }
+            // include_only with no matches
+            unmatchedIncludeOnlys.RemoveWhere(includeOnly => installsAs.Any(f => f.relDest.Contains(includeOnly)));
+        }
+
+        public void Validate(Metadata metadata, CkanModule module)
+        {
+            // Make sure this would actually generate an install.
+            if (!hasInstallable)
+            {
+                throw new Kraken(string.Format("Module contains no files matching: {0}",
+                                               module.DescribeInstallStanzas(_game)));
+            }
+
+            // Make sure no paths include GameData other than at the start
+            if (gamedatas.Count > 0)
+            {
+                throw new Kraken(
+                    string.Join(Environment.NewLine,
+                                gamedatas.GroupBy(tuple => tuple.Item2,
+                                                  tuple => tuple.Item1)
+                                         .OrderBy(grp => grp.Key)
+                                         .Select(grp => string.Format("{0} directory found within {0}:{1}{2}",
+                                                                      grp.Key,
+                                                                      Environment.NewLine,
+                                                                      string.Join(Environment.NewLine,
+                                                                                  grp.Order())))));
+            }
+
+            // Make sure we won't try to overwrite our own files
+            if (overwrites.Count > 0)
+            {
+                var badPaths = string.Join(Environment.NewLine, overwrites.Order());
+                throw new Kraken($"Multiple files attempted to install to:{Environment.NewLine}{badPaths}");
+            }
+
+            // Not a perfect check (subject to false negatives)
+            // but better than nothing
+            if (unmatchedIncludeOnlys.Count > 0)
+            {
+                log.WarnFormat("No matches for include_only: {0}",
+                               string.Join(", ", unmatchedIncludeOnlys));
             }
         }
+
+        private readonly IGame           _game;
+        private readonly HashSet<string> modDirs;
+
+        private          bool                      hasInstallable;
+        private readonly HashSet<(string, string)> gamedatas           = new HashSet<(string, string)>();
+        private readonly HashSet<string>           relDests            = new HashSet<string>();
+        private readonly HashSet<string>           overwrites          = new HashSet<string>();
+        private readonly HashSet<string>           unmatchedIncludeOnlys;
 
         private static readonly ILog log = LogManager.GetLogger(typeof(InstallsFilesValidator));
     }

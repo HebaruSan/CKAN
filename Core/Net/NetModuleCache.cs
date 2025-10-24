@@ -4,10 +4,9 @@ using System.IO;
 using System.Threading;
 using System.Collections.Generic;
 
-using ICSharpCode.SharpZipLib.Zip;
-
 using CKAN.IO;
 using CKAN.Configuration;
+using CKAN.Extensions;
 
 namespace CKAN
 {
@@ -23,9 +22,6 @@ namespace CKAN
     {
         static NetModuleCache()
         {
-            // SharpZibLib 1.1.0 changed this to default to false, but we depend on it for international mods.
-            // https://github.com/icsharpcode/SharpZipLib/issues/591
-            ZipStrings.UseUnicode = true;
         }
 
         /// <summary>
@@ -142,7 +138,7 @@ namespace CKAN
         /// </summary>
         /// <param name="module">The module object corresponding to the download</param>
         /// <param name="path">Path to the file to add</param>
-        /// <param name="progress">Callback to notify as we traverse the input, called with percentages from 0 to 100</param>
+        /// <param name="progress">Callback to notify as we traverse the input, called with byte counts</param>
         /// <param name="description">Description of the file</param>
         /// <param name="move">True to move the file, false to copy</param>
         /// <param name="cancelToken">Cancellation token to cancel the operation</param>
@@ -209,7 +205,7 @@ namespace CKAN
         /// </summary>
         /// <param name="filename">Path to zip file to check</param>
         /// <param name="invalidReason">Description of problem with the file</param>
-        /// <param name="progress">Callback to notify as we traverse the input, called with percentages from 0 to 100</param>
+        /// <param name="progress">Callback to notify as we traverse the input, called with byte counts</param>
         /// <param name="cancelToken">Cancellation token to cancel the operation</param>
         /// <returns>
         /// True if valid, false otherwise. See invalidReason param for explanation.
@@ -218,84 +214,8 @@ namespace CKAN
                                     out string         invalidReason,
                                     IProgress<long>?   progress,
                                     CancellationToken? cancelToken = default)
-        {
-            try
-            {
-                if (filename != null)
-                {
-                    using (ZipFile zip = new ZipFile(filename))
-                    {
-                        string? zipErr = null;
-                        // Limit progress updates to 100 per ZIP file
-                        long totalBytesValidated = 0;
-                        long previousBytesValidated = 0;
-                        long onePercent = new FileInfo(filename).Length / 100;
-                        // Perform CRC and other checks
-                        if (zip.TestArchive(true, TestStrategy.FindFirstError,
-                            (st, msg) =>
-                            {
-                                cancelToken?.ThrowIfCancellationRequested();
-                                // This delegate is called as TestArchive proceeds through its
-                                // steps, both routine and abnormal.
-                                // The second parameter is non-null if an error occurred.
-                                if (st != null)
-                                {
-                                    if (!st.EntryValid && !string.IsNullOrEmpty(msg))
-                                    {
-                                        // Capture the error string so we can return it
-                                        zipErr = string.Format(
-                                            Properties.Resources.NetFileCacheZipError,
-                                            st.Operation, st.Entry?.Name, msg);
-                                    }
-                                    else if (st is { Operation: TestOperation.EntryComplete,
-                                                     Entry:     ZipEntry entry }
-                                             && progress != null)
-                                    {
-                                        // Report progress
-                                        totalBytesValidated += entry.CompressedSize;
-                                        if (totalBytesValidated - previousBytesValidated > onePercent)
-                                        {
-                                            progress.Report(totalBytesValidated);
-                                            previousBytesValidated = totalBytesValidated;
-                                        }
-                                    }
-                                }
-                            }))
-                        {
-                            invalidReason = "";
-                            return true;
-                        }
-                        else
-                        {
-                            invalidReason = zipErr ?? Properties.Resources.NetFileCacheZipTestArchiveFalse;
-                            return false;
-                        }
-                    }
-                }
-                else
-                {
-                    invalidReason = Properties.Resources.NetFileCacheNullFileName;
-                    return false;
-                }
-            }
-            catch (ZipException ze)
-            {
-                // Save the errors someplace useful
-                invalidReason = ze.Message;
-                return false;
-            }
-            catch (ArgumentException ex)
-            {
-                invalidReason = ex.Message;
-                return false;
-            }
-            catch (NotSupportedException nse) when (Platform.IsMono)
-            {
-                // SharpZipLib throws this if your locale isn't installed on Mono
-                invalidReason = string.Format(Properties.Resources.NetFileCacheMonoNotSupported, nse.Message);
-                return false;
-            }
-        }
+        => File.OpenRead(filename)
+               .TestArchive(out invalidReason, progress, cancelToken);
 
         /// <summary>
         /// Remove a module's download files from the cache

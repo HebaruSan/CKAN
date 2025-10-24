@@ -1,5 +1,7 @@
 using System.IO;
-using ICSharpCode.SharpZipLib.Zip;
+using System.Linq;
+
+using SharpCompress.Archives;
 using NUnit.Framework;
 
 namespace Tests.Data
@@ -13,18 +15,17 @@ namespace Tests.Data
             // This is a perfectly fine file, written by 'file-roller', but
             // SharpZipLib can choke on it because it's not properly handling
             // the headers. See GH #221.
+            // Less relevant now that we use SharpCompress instead.
             string file = Path.Combine(TestData.DataDir, "gh221.zip");
 
-            var zipfile = new ZipFile(file);
+            var archive = ArchiveFactory.Open(file);
 
-            var entry = zipfile.GetEntry("221.txt");
-
-            string version = string.Format("{0}", entry.Version);
+            var entry = archive.Entries.Single(entry => entry.Key == "221.txt");
 
             Assert.DoesNotThrow(delegate
             {
-                zipfile.GetInputStream(entry);
-            }, "zip-entry format {0} (788 is our bug)", version);
+                entry.OpenEntryStream();
+            });
         }
     }
 }

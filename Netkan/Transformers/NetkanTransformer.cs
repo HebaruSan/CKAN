@@ -20,9 +20,8 @@ namespace CKAN.NetKAN.Transformers
     internal sealed class NetkanTransformer : ITransformer
     {
         public NetkanTransformer(IHttpService   http,
+                                 IGithubApi     ghApi,
                                  IFileService   fileService,
-                                 IModuleService moduleService,
-                                 string?        githubToken,
                                  string?        gitlabToken,
                                  string?        userAgent,
                                  bool?          prerelease,
@@ -30,7 +29,6 @@ namespace CKAN.NetKAN.Transformers
                                  IValidator     validator)
         {
             _validator = validator;
-            var ghApi = new GithubApi(http, githubToken);
             var glApi = new GitlabApi(http, gitlabToken);
             var sfApi = new SourceForgeApi(http);
             _transformers = InjectVersionedOverrideTransformers(new ITransformer[]
@@ -44,10 +42,11 @@ namespace CKAN.NetKAN.Transformers
                 new HttpTransformer(http, userAgent),
                 new JenkinsTransformer(new JenkinsApi(http)),
                 new AvcKrefTransformer(http, ghApi),
-                new InternalCkanTransformer(http, moduleService),
-                new SpaceWarpInfoTransformer(http, ghApi, moduleService),
-                new AvcTransformer(http, moduleService, ghApi),
-                new LocalizationsTransformer(http, moduleService),
+
+                // Encapsulate all the transformers that need to look inside the downloaded archive,
+                // so it can be done in fewer passes
+                new ContentsTransformer(http, ghApi, game),
+
                 new VersionEditTransformer(),
                 new ForcedVTransformer(),
                 new EpochTransformer(),
@@ -56,7 +55,6 @@ namespace CKAN.NetKAN.Transformers
                 new VersionedOverrideTransformer(before: new string?[] { null },
                                                  after:  new string?[] { null }),
                 new DownloadAttributeTransformer(http, fileService),
-                new InstallSizeTransformer(http, moduleService),
                 new StagingLinksTransformer(),
                 new GeneratedByTransformer(),
                 new OptimusPrimeTransformer(),

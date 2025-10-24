@@ -1,10 +1,9 @@
-using NUnit.Framework;
 using Newtonsoft.Json.Linq;
-using Moq;
+using NUnit.Framework;
 
+using CKAN;
 using CKAN.Games.KerbalSpaceProgram;
 using CKAN.NetKAN.Validators;
-using CKAN.NetKAN.Services;
 using CKAN.NetKAN.Model;
 using Tests.Data;
 
@@ -25,16 +24,13 @@ namespace Tests.NetKAN.Validators
                 { "install",    new JArray(new JObject() { { "find", "DogeCoinPlugin" },
                                                            { "install_to", "GameData" } }) },
             };
+            var module = jobj.ToObject<CkanModule>()!;
             var game   = new KerbalSpaceProgram();
-            var modSvc = new ModuleService(game);
-            var http   = new Mock<IHttpService>();
-            http.Setup(h => h.DownloadModule(It.IsAny<Metadata>()))
-                .Returns(TestData.DogeCoinPluginZip());
-            var sut    = new PluginsValidator(http.Object, modSvc, game);
+            var sut    = new PluginsValidator(game);
             using (var appender = new TemporaryWarningCapturer(nameof(PluginsValidator)))
             {
                 // Act
-                sut.Validate(new Metadata(jobj));
+                sut.Validate(new Metadata(jobj), module);
 
                 // Assert
                 CollectionAssert.AreEqual(

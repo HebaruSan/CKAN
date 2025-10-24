@@ -1,43 +1,48 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json.Linq;
-using ICSharpCode.SharpZipLib.Zip;
+
+using SharpCompress.Common;
 using log4net;
 
-using CKAN.NetKAN.Services;
+using CKAN.IO;
+using CKAN.Games;
+using CKAN.Games.KerbalSpaceProgram;
 using CKAN.NetKAN.Model;
 
 namespace CKAN.NetKAN.Validators
 {
-    internal sealed class CraftsInShipsValidator : IValidator
+    internal sealed class CraftsInShipsValidator : IContentValidator
     {
-        public CraftsInShipsValidator(IHttpService http, IModuleService moduleService)
+        public CraftsInShipsValidator(IGame game)
         {
-            _http          = http;
-            _moduleService = moduleService;
+            this.game = game;
         }
 
-        public void Validate(Metadata metadata)
+        public void VisitContainedFile(Metadata                             metadata,
+                                       CkanModule                           module,
+                                       IEntry                               entry,
+                                       IReadOnlyCollection<InstallableFile> installsAs,
+                                       Func<string>                         getContents)
         {
-            Log.Debug("Validating that craft files are installed into Ships");
-
-            JObject    json = metadata.AllJson;
-            CkanModule mod  = CkanModule.FromJson(json.ToString());
-            if (!mod.IsDLC)
+            if (game is KerbalSpaceProgram)
             {
-                var package = _http.DownloadModule(metadata);
-                if (!string.IsNullOrEmpty(package))
-                {
-                    var zip       = new ZipFile(package);
-                    var badCrafts = _moduleService.GetCrafts(mod, zip)
-                        .Where(f => !AllowedCraftPath(f.destination))
-                        .ToList();
+                badCrafts.UnionWith(
+                    installsAs.Select(i => i.relDest)
+                              .Where(p => p.EndsWith(".craft", StringComparison.InvariantCultureIgnoreCase)
+                                          && !AllowedCraftPath(p)));
+            }
+        }
 
-                    if (badCrafts.Count != 0)
-                    {
-                        Log.WarnFormat(
-                            "Craft files installed outside Ships folder: {0}",
-                            string.Join(", ", badCrafts.Select(f => f.destination).Order()));
-                    }
+        public void Validate(Metadata metadata, CkanModule module)
+        {
+            if (game is KerbalSpaceProgram)
+            {
+                log.Debug("Validating that craft files are installed into Ships");
+                if (badCrafts.Count > 0)
+                {
+                    log.WarnFormat("Craft files installed outside Ships folder: {0}",
+                                   string.Join(", ", badCrafts.Order()));
                 }
             }
         }
@@ -47,9 +52,9 @@ namespace CKAN.NetKAN.Validators
                || path.StartsWith("Missions/")
                || path.StartsWith("GameData/ContractPacks/");
 
-        private readonly IHttpService   _http;
-        private readonly IModuleService _moduleService;
+        private readonly IGame           game;
+        private readonly HashSet<string> badCrafts = new HashSet<string>();
 
-        private static readonly ILog Log = LogManager.GetLogger(typeof(CraftsInShipsValidator));
+        private static readonly ILog log = LogManager.GetLogger(typeof(CraftsInShipsValidator));
     }
 }

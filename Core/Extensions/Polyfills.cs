@@ -66,6 +66,23 @@ namespace System.Linq
             => seq.GroupBy(func).Select(grp => grp.First());
 
         /// <summary>
+        /// Find the element of a sequence with the smallest value of some function
+        /// </summary>
+        /// <param name="source">Sequence to search</param>
+        /// <param name="func">Function to apply to each element</param>
+        /// <returns>Sequence element with the smallest return value of func</returns>
+        public static T? MinBy<T, K>(this IEnumerable<T> source, Func<T, K> func)
+            where T : class
+            where K : IComparable<K>
+            => source.Select(val => (key: func(val), val))
+                     .Aggregate(((K key, T val)?)null,
+                                (best, next) => best is (K key, T val) realBest
+                                                && next.key.CompareTo(realBest.key) >= 0
+                                                    ? best
+                                                    : next,
+                                best => best?.val);
+
+        /// <summary>
         /// Make pairs out of the elements of two sequences
         /// </summary>
         /// <param name="seq1">The first sequence</param>

@@ -1,51 +1,58 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
-using ICSharpCode.SharpZipLib.Zip;
+using SharpCompress.Common;
 using log4net;
 
+using CKAN.IO;
+using CKAN.SpaceWarp;
 using CKAN.NetKAN.Model;
 using CKAN.NetKAN.Services;
-using CKAN.NetKAN.Sources.Github;
-using CKAN.SpaceWarp;
 
 namespace CKAN.NetKAN.Validators
 {
-    internal sealed class SpaceWarpInfoValidator : IValidator
+    internal sealed class SpaceWarpInfoValidator : IContentValidator
     {
-        public SpaceWarpInfoValidator(IHttpService   httpSvc,
-                                      IGithubApi     githubApi,
-                                      IModuleService modSvc)
+        public SpaceWarpInfoValidator(ISpaceWarpInfoLoader loader)
         {
-            this.httpSvc   = httpSvc;
-            this.githubApi = githubApi;
-            this.modSvc    = modSvc;
+            swinfoLoader = loader;
         }
 
-        public void Validate(Metadata metadata)
+        public void VisitContainedFile(Metadata                             metadata,
+                                       CkanModule                           module,
+                                       IEntry                               entry,
+                                       IReadOnlyCollection<InstallableFile> installsAs,
+                                       Func<string>                         getContents)
         {
-            var moduleJson = metadata.AllJson;
-            CkanModule mod = CkanModule.FromJson(moduleJson.ToString());
-            if (httpSvc.DownloadModule(metadata) is string file
-                && new ZipFile(file) is ZipFile zip
-                && modSvc.GetSpaceWarpInfo(mod, zip, githubApi, httpSvc) is SpaceWarpInfo swinfo)
+            if (installsAs.Select(i => i.relDest)
+                          .Any(p => p.EndsWith(SpaceWarpInfoFilename))
+                && swinfoLoader.Load(getContents()) is SpaceWarpInfo swinfo)
             {
-                var moduleDeps = (mod.depends?.OfType<ModuleRelationshipDescriptor>()
-                                              .Select(r => r.name)
-                                  ?? Enumerable.Empty<string>())
+                infos.Add(swinfo);
+            }
+        }
+
+        public void Validate(Metadata metadata, CkanModule module)
+        {
+            if (infos.Count > 0)
+            {
+                var moduleDeps = (module.depends?.OfType<ModuleRelationshipDescriptor>()
+                                                 .Select(r => r.name)
+                                                ?? Enumerable.Empty<string>())
                                   .ToHashSet();
-                var missingDeps = (swinfo.dependencies
-                                         ?.Select(dep => dep.id)
-                                          .OfType<string>()
-                                          .Where(depId => !moduleDeps.Contains(
-                                              // Remove up to last period
-                                              Identifier.Sanitize(
-                                                  depId[(depId.LastIndexOf('.') + 1)..], ""),
-                                              // Case insensitive
-                                              StringComparer.InvariantCultureIgnoreCase))
-                                         ?? Enumerable.Empty<string>())
-                                          .ToList();
-                if (missingDeps.Count != 0)
+                var missingDeps = infos.SelectMany(swinfo => (swinfo.dependencies
+                                                                    ?.Select(dep => dep.id)
+                                                                     .OfType<string>()
+                                                                     .Where(depId => !moduleDeps.Contains(
+                                                                         // Remove up to last period
+                                                                         Identifier.Sanitize(
+                                                                             depId[(depId.LastIndexOf('.') + 1)..], ""),
+                                                                         // Case insensitive
+                                                                         StringComparer.InvariantCultureIgnoreCase))
+                                                                    ?? Enumerable.Empty<string>()))
+                                       .ToList();
+                if (missingDeps.Count > 0)
                 {
                     log.WarnFormat("Dependencies from swinfo.json missing from module: {0}",
                                    string.Join(", ", missingDeps));
@@ -53,10 +60,10 @@ namespace CKAN.NetKAN.Validators
             }
         }
 
-        private readonly IHttpService   httpSvc;
-        private readonly IGithubApi     githubApi;
-        private readonly IModuleService modSvc;
+        private readonly ISpaceWarpInfoLoader swinfoLoader;
+        private readonly List<SpaceWarpInfo>  infos = new List<SpaceWarpInfo>();
 
+        private const string SpaceWarpInfoFilename = "swinfo.json";
         private static readonly ILog log = LogManager.GetLogger(typeof(SpaceWarpInfoValidator));
     }
 }

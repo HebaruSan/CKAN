@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-using ICSharpCode.SharpZipLib.Zip;
+using SharpCompress.Archives;
 using Newtonsoft.Json.Linq;
 using YamlDotNet.RepresentationModel;
 
@@ -158,7 +158,7 @@ namespace CKAN.IO
                 {
                     matched.Add(fi, modules);
                 }
-                else if (GetInternalModules(new ZipFile(fi.FullName)).ToList() is var ckans
+                else if (GetInternalModules(fi.FullName).ToList() is var ckans
                          && ckans.Count > 0)
                 {
                     matched.Add(fi, ckans);
@@ -178,13 +178,21 @@ namespace CKAN.IO
         private static readonly Regex swInfoRegex = new Regex(@"^#/ckan/space-warp(/(?<filter>.*))?$",
                                                               RegexOptions.Compiled);
 
-        private static IEnumerable<CkanModule> GetInternalModules(ZipFile zip)
+        private static IEnumerable<CkanModule> GetInternalModules(string filename)
         {
-            var internalCkans = InternalCkanFiles(zip).ToArray();
+            using (var archive = ArchiveFactory.Open(filename))
+            {
+                return GetInternalModules(archive, filename);
+            }
+        }
+
+        private static IEnumerable<CkanModule> GetInternalModules(IArchive archive, string filename)
+        {
+            var internalCkans = InternalCkanFiles(archive).ToArray();
             // CkanModule.download is required for cache management, set a default if missing
             foreach (var ckan in internalCkans)
             {
-                ckan["download"] ??= $"https://ckan/imported-from-zip/{ckan["identifier"]}/{zip.Name}";
+                ckan["download"] ??= $"https://ckan/imported-from-zip/{ckan["identifier"]}/{filename}";
             }
             // Set the version and compatibility if we can
             foreach (var grp in internalCkans.GroupBy(ckan => (string?)ckan["$vref"] ?? ""))
@@ -194,14 +202,14 @@ namespace CKAN.IO
                     var filter = avcMatch.Groups["filter"].Success
                                      ? avcMatch.Groups["filter"].ToString()
                                      : null;
-                    ApplyAvcs(InternalVersionFiles(zip, filter).ToArray(), grp);
+                    ApplyAvcs(InternalVersionFiles(archive, filter).ToArray(), grp);
                 }
                 else if (swInfoRegex.TryMatch(grp.Key, out Match? swInfoMatch))
                 {
                     var filter = swInfoMatch.Groups["filter"].Success
                                      ? swInfoMatch.Groups["filter"].ToString()
                                      : null;
-                    ApplySpaceWarpInfos(InternalSpaceWarpInfos(zip, filter).ToArray(), grp);
+                    ApplySpaceWarpInfos(InternalSpaceWarpInfos(archive, filter).ToArray(), grp);
                 }
             }
             return internalCkans.Select(json => json.ToObject<CkanModule>())
@@ -256,40 +264,41 @@ namespace CKAN.IO
             }
         }
 
-        private static IEnumerable<JObject> InternalCkanFiles(ZipFile zip)
-            => GetInternalYamlFiles(zip, ".ckan", null);
+        private static IEnumerable<JObject> InternalCkanFiles(IArchive archive)
+            => GetInternalYamlFiles(archive, ".ckan", null);
 
-        private static IEnumerable<AvcVersion> InternalVersionFiles(ZipFile zip, string? filter)
-            => GetInternalJsonFiles(zip, ".version", filter)
+        private static IEnumerable<AvcVersion> InternalVersionFiles(IArchive archive, string? filter)
+            => GetInternalJsonFiles(archive, ".version", filter)
                    .Select(json => json.ToObject<AvcVersion>())
                    .OfType<AvcVersion>();
 
-        private static IEnumerable<SpaceWarpInfo> InternalSpaceWarpInfos(ZipFile zip, string? filter)
-            => GetInternalJsonFiles(zip, "swinfo.json", filter)
+        private static IEnumerable<SpaceWarpInfo> InternalSpaceWarpInfos(IArchive archive, string? filter)
+            => GetInternalJsonFiles(archive, "swinfo.json", filter)
                    .Select(json => json.ToObject<SpaceWarpInfo>())
                    .OfType<SpaceWarpInfo>();
 
-        private static IEnumerable<JObject> GetInternalYamlFiles(ZipFile zip, string nameSuffix, string? filter)
-            => FilterEntries(zip, nameSuffix, filter)
+        private static IEnumerable<JObject> GetInternalYamlFiles(IArchive archive, string nameSuffix, string? filter)
+            => FilterEntries(archive, nameSuffix, filter)
                    .SelectMany(entry =>
                                {
                                    var stream = new YamlStream();
-                                   stream.Load(new StreamReader(zip.GetInputStream(entry)));
+                                   stream.Load(new StreamReader(entry.OpenEntryStream()));
                                    return stream.Documents.Select(doc => doc?.RootNode)
                                                           .OfType<YamlMappingNode>()
                                                           .Select(yaml => yaml.ToJObject());
                                });
 
-        private static IEnumerable<JObject> GetInternalJsonFiles(ZipFile zip, string nameSuffix, string? filter)
-            => FilterEntries(zip, nameSuffix, filter)
-                   .Select(entry => JObject.Parse(new StreamReader(zip.GetInputStream(entry)).ReadToEnd()));
+        private static IEnumerable<JObject> GetInternalJsonFiles(IArchive archive, string nameSuffix, string? filter)
+            => FilterEntries(archive, nameSuffix, filter)
+                   .Select(entry => JObject.Parse(new StreamReader(entry.OpenEntryStream()).ReadToEnd()));
 
-        private static IEnumerable<ZipEntry> FilterEntries(ZipFile zip, string nameSuffix, string? filter)
-            => zip.OfType<ZipEntry>()
-                  .Where(entry => entry.Name.EndsWith(nameSuffix, StringComparison.InvariantCultureIgnoreCase)
-                                  && (filter == null
-                                      || entry.Name == filter
-                                      || Regex.IsMatch(entry.Name, filter)));
+        private static IEnumerable<IArchiveEntry> FilterEntries(IArchive archive, string nameSuffix, string? filter)
+            => archive.Entries
+                      .Where(entry => (entry.Key?.EndsWith(nameSuffix, StringComparison.InvariantCultureIgnoreCase)
+                                                ?? false)
+                                      && (filter == null
+                                          || entry.Key == filter
+                                          || Regex.IsMatch(entry.Key, filter)));
 
     }
 }

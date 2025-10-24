@@ -27,10 +27,9 @@ namespace Tests.NetKAN.Processors
             {
                 var http     = new Mock<IHttpService>();
                 var game     = new KerbalSpaceProgram();
-                var modSvc   = new ModuleService(game);
                 var fileSvc  = new FileService(cache);
                 var sut      = new Inflator(null, null, null, null,
-                                            game, cache, http.Object, modSvc, fileSvc);
+                                            game, cache, http.Object, fileSvc);
                 var filename = TestData.TestNetkanPath();
                 var netkans  = YamlExtensions.Parse(TestData.TestNetkanContents())
                                              .Select(yaml => new Metadata(yaml))
@@ -89,10 +88,9 @@ namespace Tests.NetKAN.Processors
             {
                 var game    = new KerbalSpaceProgram();
                 var http    = new Mock<IHttpService>();
-                var modSvc  = new ModuleService(game);
                 var fileSvc = new FileService(cache);
                 var sut     = new Inflator(null, null, null, null,
-                                           game, cache, http.Object, modSvc, fileSvc);
+                                           game, cache, http.Object, fileSvc);
                 var ckans   = YamlExtensions.Parse(TestData.DogeCoinPlugin())
                                             .Select(yaml => new Metadata(yaml))
                                             .ToArray();

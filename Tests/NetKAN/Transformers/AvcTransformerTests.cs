@@ -1,23 +1,19 @@
-using System.Linq;
-
 using Moq;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
-using CKAN;
 using CKAN.NetKAN.Model;
 using CKAN.NetKAN.Services;
 using CKAN.Avc;
 using CKAN.NetKAN.Transformers;
 using CKAN.Versioning;
+using CKAN.NetKAN.Sources.Github;
 
 namespace Tests.NetKAN.Transformers
 {
     [TestFixture]
     public sealed class AvcTransformerTests
     {
-        private readonly TransformOptions opts = new TransformOptions(1, null, null, null, false, null);
-
         [Test]
         public void AddsMissingVersionInfo()
         {
@@ -29,16 +25,11 @@ namespace Tests.NetKAN.Transformers
             };
 
             var mHttp = new Mock<IHttpService>();
-            var mModuleService = new Mock<IModuleService>();
-
             mHttp.Setup(i => i.DownloadModule(It.IsAny<Metadata>()))
                  .Returns("");
-            mModuleService.Setup(i => i.GetInternalAvc(It.IsAny<CkanModule>(),
-                                                       It.IsAny<string>(),
-                                                       It.IsAny<string>()))
-                          .Returns(avcVersion);
+            var mGithub = new Mock<IGithubApi>();
 
-            var sut = new AvcTransformer(mHttp.Object, mModuleService.Object, null);
+            var sut = new AvcTransformer(mHttp.Object, mGithub.Object);
 
             var json = new JObject();
             json["spec_version"] = 1;
@@ -48,7 +39,7 @@ namespace Tests.NetKAN.Transformers
             json["download"] = "https://awesomemod.example/AwesomeMod.zip";
 
             // Act
-            var result = sut.Transform(new Metadata(json), opts).First();
+            var result = sut.Transform(new Metadata(json));
             var transformedJson = result.Json();
 
             // Assert
@@ -72,16 +63,11 @@ namespace Tests.NetKAN.Transformers
             };
 
             var mHttp = new Mock<IHttpService>();
-            var mModuleService = new Mock<IModuleService>();
-
             mHttp.Setup(i => i.DownloadModule(It.IsAny<Metadata>()))
                  .Returns("");
-            mModuleService.Setup(i => i.GetInternalAvc(It.IsAny<CkanModule>(),
-                                                       It.IsAny<string>(),
-                                                       It.IsAny<string>()))
-                          .Returns(avcVersion);
+            var mGithub = new Mock<IGithubApi>();
 
-            var sut = new AvcTransformer(mHttp.Object, mModuleService.Object, null);
+            var sut = new AvcTransformer(mHttp.Object, mGithub.Object);
 
             var json = new JObject();
             json["spec_version"] = 1;
@@ -91,7 +77,7 @@ namespace Tests.NetKAN.Transformers
             json["download"] = "https://awesomemod.example/AwesomeMod.zip";
 
             // Act
-            var result = sut.Transform(new Metadata(json), opts).First();
+            var result = sut.Transform(new Metadata(json));
             var transformedJson = result.Json();
 
             // Assert
@@ -228,19 +214,14 @@ namespace Tests.NetKAN.Transformers
             }
 
             var mHttp = new Mock<IHttpService>();
-            var mModuleService = new Mock<IModuleService>();
-
             mHttp.Setup(i => i.DownloadModule(It.IsAny<Metadata>()))
                  .Returns("");
-            mModuleService.Setup(i => i.GetInternalAvc(It.IsAny<CkanModule>(),
-                                                       It.IsAny<string>(),
-                                                       It.IsAny<string>()))
-                          .Returns(avcVersion);
+            var mGithub = new Mock<IGithubApi>();
 
-            var sut = new AvcTransformer(mHttp.Object, mModuleService.Object, null);
+            var sut = new AvcTransformer(mHttp.Object, mGithub.Object);
 
             // Act
-            var result = sut.Transform(new Metadata(json), opts).First();
+            var result = sut.Transform(new Metadata(json));
             var transformedJson = result.Json();
 
             // Assert
@@ -264,16 +245,11 @@ namespace Tests.NetKAN.Transformers
             var avcVersion = new AvcVersion { version = new ModuleVersion("1.2.3") };
 
             var mHttp = new Mock<IHttpService>();
-            var mModuleService = new Mock<IModuleService>();
-
             mHttp.Setup(i => i.DownloadModule(It.IsAny<Metadata>()))
                  .Returns("");
-            mModuleService.Setup(i => i.GetInternalAvc(It.IsAny<CkanModule>(),
-                                                       It.IsAny<string>(),
-                                                       It.IsAny<string>()))
-                          .Returns(avcVersion);
+            var mGithub = new Mock<IGithubApi>();
 
-            var sut = new AvcTransformer(mHttp.Object, mModuleService.Object, null);
+            var sut = new AvcTransformer(mHttp.Object, mGithub.Object);
 
             var json = new JObject();
             json["spec_version"] = 1;
@@ -284,7 +260,7 @@ namespace Tests.NetKAN.Transformers
             json["version"] = "9001";
 
             // Act
-            var result = sut.Transform(new Metadata(json), opts).First();
+            var result = sut.Transform(new Metadata(json));
             var transformedJson = result.Json();
 
             // Assert
@@ -298,18 +274,11 @@ namespace Tests.NetKAN.Transformers
         {
             // Arrange
             var mHttp          = new Mock<IHttpService>();
-            var mModuleService = new Mock<IModuleService>();
             mHttp.Setup(i => i.DownloadModule(It.IsAny<Metadata>()))
                  .Returns("");
-            mModuleService.Setup(i => i.GetInternalAvc(It.IsAny<CkanModule>(),
-                                                       It.IsAny<string>(),
-                                                       It.IsAny<string>()))
-                          .Returns(new AvcVersion()
-                          {
-                              version = new ModuleVersion("1.2.3")
-                          });
+            var mGithub = new Mock<IGithubApi>();
 
-            ITransformer sut = new AvcTransformer(mHttp.Object, mModuleService.Object, null);
+            var sut = new AvcTransformer(mHttp.Object, mGithub.Object);
 
             JObject json = new JObject();
             json["spec_version"]                = 1;
@@ -321,7 +290,7 @@ namespace Tests.NetKAN.Transformers
             json["x_netkan_trust_version_file"] = true;
 
             // Act
-            Metadata result          = sut.Transform(new Metadata(json), opts).First();
+            Metadata result          = sut.Transform(new Metadata(json));
             JObject  transformedJson = result.Json();
 
             // Assert

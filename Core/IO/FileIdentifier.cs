@@ -1,7 +1,9 @@
+using System;
 using System.IO;
 using System.Linq;
 
-using ICSharpCode.SharpZipLib.GZip;
+using SharpCompress.Compressors;
+using SharpCompress.Compressors.Deflate;
 
 using CKAN.Extensions;
 
@@ -176,9 +178,12 @@ namespace CKAN.IO
             {
                 // This may contain a tar file inside, create a new stream and check.
                 stream.Seek(0, SeekOrigin.Begin);
-                type = CheckTar(new GZipInputStream(stream))
-                    ? FileType.TarGz
-                    : FileType.GZip;
+
+                // Don't use `using` to avoid closing `stream`
+                var gzStream = new GZipStream(stream, CompressionMode.Decompress);
+                type = CheckTar(gzStream)
+                           ? FileType.TarGz
+                           : FileType.GZip;
             }
             else if (CheckTar(stream))
             {

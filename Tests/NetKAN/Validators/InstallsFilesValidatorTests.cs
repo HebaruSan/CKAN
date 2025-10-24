@@ -1,14 +1,12 @@
-using Moq;
+using System;
+
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 using CKAN;
 using CKAN.NetKAN.Model;
-using CKAN.NetKAN.Services;
 using CKAN.NetKAN.Validators;
 using CKAN.Games.KerbalSpaceProgram;
-using Tests.Data;
-using System;
 
 namespace Tests.NetKAN.Validators
 {
@@ -19,12 +17,6 @@ namespace Tests.NetKAN.Validators
         public void Validate_InstallableFiles_DoesNotThrow()
         {
             // Arrange
-            var mHttp = new Mock<IHttpService>();
-
-            var mModuleService = new Mock<IModuleService>();
-            mModuleService.Setup(i => i.HasInstallableFiles(It.IsAny<CkanModule>(), It.IsAny<string>()))
-                          .Returns(true);
-
             var json = new JObject()
             {
                 { "spec_version", 1 },
@@ -33,12 +25,11 @@ namespace Tests.NetKAN.Validators
                 { "version",      "1.0.0" },
                 { "download",     "https://www.awesome-mod.example/AwesomeMod.zip" },
             };
-
-            var sut = new InstallsFilesValidator(mHttp.Object, mModuleService.Object,
-                                                 new KerbalSpaceProgram());
+            var module = json.ToObject<CkanModule>()!;
+            var sut = new InstallsFilesValidator(new KerbalSpaceProgram(), module);
 
             // Act
-            TestDelegate act = () => sut.Validate(new Metadata(json));
+            TestDelegate act = () => sut.Validate(new Metadata(json), module);
 
             // Assert
             Assert.That(act, Throws.Nothing,
@@ -49,14 +40,6 @@ namespace Tests.NetKAN.Validators
         public void Validate_NoInstallableFiles_Throws()
         {
             // Arrange
-            var mHttp = new Mock<IHttpService>();
-            mHttp.Setup(i => i.DownloadModule(It.IsAny<Metadata>()))
-                 .Returns("");
-
-            var mModuleService = new Mock<IModuleService>();
-            mModuleService.Setup(i => i.HasInstallableFiles(It.IsAny<CkanModule>(), It.IsAny<string>()))
-                          .Returns(false);
-
             var json = new JObject()
             {
                 { "spec_version", 1 },
@@ -65,12 +48,12 @@ namespace Tests.NetKAN.Validators
                 { "version",      "1.0.0" },
                 { "download",     "https://www.awesome-mod.example/AwesomeMod.zip" },
             };
+            var module = json.ToObject<CkanModule>()!;
 
-            var sut = new InstallsFilesValidator(mHttp.Object, mModuleService.Object,
-                                                 new KerbalSpaceProgram());
+            var sut = new InstallsFilesValidator(new KerbalSpaceProgram(), module);
 
             // Act
-            TestDelegate act = () => sut.Validate(new Metadata(json));
+            TestDelegate act = () => sut.Validate(new Metadata(json), module);
 
             // Assert
             Assert.That(act, Throws.Exception,
@@ -82,11 +65,6 @@ namespace Tests.NetKAN.Validators
         {
             // Arrange
             var game   = new KerbalSpaceProgram();
-            var http   = new Mock<IHttpService>();
-            http.Setup(i => i.DownloadModule(It.IsAny<Metadata>()))
-                .Returns(TestData.DogeCoinFlagZip());
-            var modSvc = new ModuleService(game);
-            var sut    = new InstallsFilesValidator(http.Object, modSvc, game);
             var jobj   = new JObject()
             {
                 { "identifier", "DumbCoinFlag" },
@@ -104,9 +82,11 @@ namespace Tests.NetKAN.Validators
                     }
                 },
             };
+            var module = jobj.ToObject<CkanModule>()!;
+            var sut    = new InstallsFilesValidator(game, module);
 
             // Act / Assert
-            var exc = Assert.Throws<Kraken>(() => sut.Validate(new Metadata(jobj)))!;
+            var exc = Assert.Throws<Kraken>(() => sut.Validate(new Metadata(jobj), module))!;
             CollectionAssert.AreEqual(new string[]
                                       {
                                           "GameData directory found within GameData:",
@@ -121,11 +101,6 @@ namespace Tests.NetKAN.Validators
         {
             // Arrange
             var game   = new KerbalSpaceProgram();
-            var http   = new Mock<IHttpService>();
-            http.Setup(i => i.DownloadModule(It.IsAny<Metadata>()))
-                .Returns(TestData.DogeCoinFlagZip());
-            var modSvc = new ModuleService(game);
-            var sut    = new InstallsFilesValidator(http.Object, modSvc, game);
             var jobj   = new JObject()
             {
                 { "identifier", "DumbCoinFlag" },
@@ -148,9 +123,11 @@ namespace Tests.NetKAN.Validators
                     }
                 },
             };
+            var module = jobj.ToObject<CkanModule>()!;
+            var sut    = new InstallsFilesValidator(game, module);
 
             // Act / Assert
-            var exc = Assert.Throws<Kraken>(() => sut.Validate(new Metadata(jobj)))!;
+            var exc = Assert.Throws<Kraken>(() => sut.Validate(new Metadata(jobj), module))!;
             CollectionAssert.AreEqual(new string[]
                                       {
                                           "Multiple files attempted to install to:",
